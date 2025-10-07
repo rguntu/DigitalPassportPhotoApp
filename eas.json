@@ -1,0 +1,44 @@
+{
+  "cli": {
+    "version": ">= 16.20.1",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "cache": {
+        "key": "v1",
+        "paths": ["node_modules", "ios/Pods", "~/.gradle/caches"]
+      }
+    },
+    "simulator": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "cache": {
+        "key": "v1",
+        "paths": ["node_modules", "ios/Pods", "~/.gradle/caches"]
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "cache": {
+        "key": "v1",
+        "paths": ["node_modules", "ios/Pods", "~/.gradle/caches"]
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "cache": {
+        "key": "v1",
+        "paths": ["node_modules", "ios/Pods", "~/.gradle/caches"]
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
