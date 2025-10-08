@@ -1,6 +1,11 @@
 # Digital Passport Photo App
 
-This is a skeleton React Native Digital Passport Photo App built with Expo.
+This is a React Native Digital Passport Photo App built with Expo. The app allows users to either take a photo using their device's camera or upload an existing photo from their media library.
+
+## Features
+
+- **Take a Photo:** Request camera permission and (in the future) open the camera to take a photo.
+- **Upload a Photo:** Request media library permission and open the image picker to select a photo.
 
 ## Prerequisites
 
@@ -30,8 +35,6 @@ npm install
 
 ## Running the App
 
-### Development
-
 The app uses the Metro bundler. You can run the app in a simulator or on a physical device using the Expo Go app.
 
 1. **Start the Metro bundler:**
@@ -41,26 +44,6 @@ npm start
 ```
 
 This will open the Expo Dev Tools in your browser. You can then choose to run the app on an iOS simulator, Android emulator, or scan the QR code with the Expo Go app on your physical device.
-
-### Custom Development Client
-
-The app is configured with a custom URI scheme (`myapp://`) for use with a custom development client.
-
-1. **Build the development client:**
-
-```bash
-eas build --profile development --platform ios
-```
-
-2. **Install the client on a simulator or device.**
-
-3. **Start the Metro bundler:**
-
-```bash
-npm start
-```
-
-4. **Open the app in the development client.**
 
 ## Building for Production
 
@@ -72,15 +55,16 @@ eas build --platform ios
 
 ## Permissions
 
-The `app.json` file is configured with the necessary permissions for accessing the camera and photo library.
+The `app.json` file is configured with the necessary permissions for accessing the camera and photo library for iOS.
 
 - **Camera:** `NSCameraUsageDescription`
 - **Photo Library:** `NSPhotoLibraryUsageDescription`
 
-## Debugging
+## Project Structure
 
-You can debug the app using the standard React Native debugging tools.
-
-- **Shake your device** or press `Cmd+D` (iOS simulator) or `Cmd+M` (Android emulator) to open the developer menu.
-- **Enable "Debug JS Remotely"** to debug the app in Chrome.
-- **Use Flipper** for more advanced debugging.
+- `app/`: Contains the source code for the app.
+  - `_layout.js`: Defines the root layout and navigation.
+  - `index.js`: The main screen of the app.
+- `assets/`: Contains static assets like images and fonts.
+- `app.json`: The configuration file for the Expo app.
+- `package.json`: Lists the project dependencies and scripts.

@@ -20,14 +20,14 @@
       },
       "cache": {
         "key": "v1",
-        "paths": ["node_modules", "ios/Pods", "~/.gradle/caches"]
+        "paths": ["node_modules", "ios/Pods"]
       }
     },
     "preview": {
       "distribution": "internal",
       "cache": {
         "key": "v1",
-        "paths": ["node_modules", "ios/Pods", "~/.gradle/caches"]
+        "paths": ["node_modules", "ios/Pods"]
       }
     },
     "production": {

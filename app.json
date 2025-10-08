@@ -13,7 +13,12 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.digitalpassportphoto"
+      "bundleIdentifier": "com.example.digitalpassportphoto",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "This app needs access to your camera to take photos for your passport.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload photos for your passport."
+      }
     },
     "android": {
       "adaptiveIcon": {
