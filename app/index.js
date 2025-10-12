@@ -1,47 +1,76 @@
-
-import { StyleSheet, Text, View, Button, Alert } from "react-native";
-import { Camera } from 'expo-camera';
+import { StyleSheet, Text, View, Button, Image } from "react-native";
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useState, useRef } from 'react';
+import * as Sharing from 'expo-sharing';
 import * as ImagePicker from 'expo-image-picker';
 
 export default function Page() {
+  const [permission, requestPermission] = useCameraPermissions();
+  const [photo, setPhoto] = useState();
+  const cameraRef = useRef(null);
+
+  if (!permission) {
+    // Camera permissions are still loading.
+    return <View />;
+  }
+
+  if (!permission.granted) {
+    // Camera permissions are not granted yet.
+    return (
+      <View style={styles.container}>
+        <Text style={{ textAlign: 'center' }}>We need your permission to show the camera</Text>
+        <Button onPress={requestPermission} title="grant permission" />
+      </View>
+    );
+  }
+
   const takePhoto = async () => {
-    const { status } = await Camera.requestCameraPermissionsAsync();
-    if (status === 'granted') {
-      Alert.alert("Take Photo", "Camera functionality will be implemented here.");
-    } else {
-      Alert.alert("Permission Denied", "Camera permission is required to take photos.");
+    if (cameraRef.current) {
+      const newPhoto = await cameraRef.current.takePictureAsync({ base64: true });
+      setPhoto(newPhoto);
     }
   };
 
-  const uploadPhoto = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status === 'granted') {
-      let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 1,
+    });
 
-      if (!result.canceled) {
-        Alert.alert("Upload Photo", "Selected image: " + result.assets[0].uri);
-      } else {
-        Alert.alert("Upload Photo", "Image selection cancelled.");
-      }
-    } else {
-      Alert.alert("Permission Denied", "Media library permission is required to upload photos.");
+    if (!result.canceled) {
+      setPhoto({ uri: result.assets[0].uri, base64: null }); // Assuming you'll handle URI differently from base64
     }
   };
+
+  const sharePhoto = () => {
+    Sharing.shareAsync(photo.uri).then(() => {
+      setPhoto(undefined);
+    });
+  };
+
+  const savePhoto = () => {
+    setPhoto(undefined);
+  };
+
+  if (photo) {
+    return (
+      <View style={styles.container}>
+        <Image style={styles.preview} source={{ uri: photo.uri || "data:image/jpg;base64," + photo.base64 }} />
+        <Button title="Share" onPress={sharePhoto} />
+        <Button title="Save" onPress={savePhoto} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <View style={styles.main}>
-        <Text style={styles.title}>Digital Passport Photo App</Text>
+      <CameraView style={styles.camera} ref={cameraRef}>
         <View style={styles.buttonContainer}>
           <Button title="Take Photo" onPress={takePhoto} />
-          <Button title="Upload Photo" onPress={uploadPhoto} />
+          <Button title="Upload Photo" onPress={pickImage} />
         </View>
-      </View>
+      </CameraView>
     </View>
   );
 }
@@ -49,25 +78,21 @@ export default function Page() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
-    padding: 24,
-    backgroundColor: "#fff",
+    justifyContent: 'center'
   },
-  main: {
+  camera: {
     flex: 1,
-    justifyContent: "center",
-    maxWidth: 960,
-    marginHorizontal: "auto",
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#38434D",
-    marginBottom: 20,
   },
   buttonContainer: {
-    marginTop: 20,
-    width: '80%',
-    gap: 10,
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: 'transparent',
+    margin: 64,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
   },
+  preview: {
+    alignSelf: 'stretch',
+    flex: 1
+  }
 });
