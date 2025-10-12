@@ -1,13 +1,24 @@
 import { StyleSheet, Text, View, Button, Image } from "react-native";
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useState, useRef } from 'react';
-import * as Sharing from 'expo-sharing';
 import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+import * as FileSystem from 'expo-file-system';
+
+const photosDir = FileSystem.documentDirectory + 'photos/';
 
 export default function Page() {
   const [permission, requestPermission] = useCameraPermissions();
   const [photo, setPhoto] = useState();
   const cameraRef = useRef(null);
+  const router = useRouter();
+
+  const ensureDirExists = async () => {
+    const dirInfo = await FileSystem.getInfoAsync(photosDir);
+    if (!dirInfo.exists) {
+      await FileSystem.makeDirectoryAsync(photosDir, { intermediates: true });
+    }
+  };
 
   if (!permission) {
     // Camera permissions are still loading.
@@ -43,22 +54,25 @@ export default function Page() {
     }
   };
 
-  const sharePhoto = () => {
-    Sharing.shareAsync(photo.uri).then(() => {
-      setPhoto(undefined);
+  const savePhoto = async () => {
+    await ensureDirExists();
+    const filename = `${Date.now()}.jpg`;
+    const dest = photosDir + filename;
+    await FileSystem.copyAsync({
+      from: photo.uri,
+      to: dest,
     });
-  };
-
-  const savePhoto = () => {
     setPhoto(undefined);
+    router.push('/gallery');
   };
 
   if (photo) {
     return (
       <View style={styles.container}>
         <Image style={styles.preview} source={{ uri: photo.uri || "data:image/jpg;base64," + photo.base64 }} />
-        <Button title="Share" onPress={sharePhoto} />
-        <Button title="Save" onPress={savePhoto} />
+        <View style={styles.centeredButtonContainer}>
+          <Button title="Save" onPress={savePhoto} />
+        </View>
       </View>
     );
   }
@@ -92,7 +106,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   preview: {
-    alignSelf: 'stretch',
-    flex: 1
+    width: '50%',
+    height: '50%',
+    alignSelf: 'center',
+    resizeMode: 'contain',
+  },
+  centeredButtonContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   }
 });
