@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, Button, Image } from "react-native";
+import { StyleSheet, Text, View, Button, Image, Alert } from "react-native";
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useState, useRef } from 'react';
 import * as ImagePicker from 'expo-image-picker';
@@ -50,7 +50,17 @@ export default function Page() {
     });
 
     if (!result.canceled) {
-      setPhoto({ uri: result.assets[0].uri, base64: null }); // Assuming you'll handle URI differently from base64
+      const { uri } = result.assets[0];
+      Image.getSize(uri, (width, height) => {
+        if (width < 600 || height < 600) {
+          Alert.alert(
+            'Resolution Too Low',
+            `Photo is too small (${width}×${height}). Please upload a higher resolution image (at least 600×600 pixels).`
+          );
+        } else {
+          setPhoto({ uri: uri, base64: null });
+        }
+      });
     }
   };
 
