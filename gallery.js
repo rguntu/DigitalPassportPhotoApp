@@ -170,7 +170,7 @@ export default function Gallery() {
       </TouchableOpacity>
       {isProcessing === item ? (
         <View>
-          <ActivityIndicator size="small" color="#0000ff" />
+          <ActivityIndicator size="small" color="white" />
           <Text style={styles.processingStatusText}>{processingStatus}</Text>
         </View>
       ) : (
@@ -202,37 +202,39 @@ export default function Gallery() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#BBDEFB',
   },
   tabContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
+    borderBottomColor: 'white',
+    backgroundColor: 'transparent',
   },
   tab: {
     padding: 10,
   },
   activeTab: {
     borderBottomWidth: 2,
-    borderBottomColor: 'blue',
+    borderBottomColor: 'white',
   },
   tabText: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: 'white',
   },
   photoContainer: {
     flex: 1 / 3,
     aspectRatio: 1,
-    padding: 2,
-    justifyContent: 'center',
+    padding: 0,
+    justifyContent: 'flex-start',
     alignItems: 'center',
     position: 'relative',
   },
   photo: {
     width: '100%',
-    height: '80%',
+    height: '100%',
   },
   deleteButton: {
     position: 'absolute',
@@ -253,10 +255,10 @@ const styles = StyleSheet.create({
   processingStatusText: {
     marginTop: 5,
     fontSize: 12,
-    color: '#555',
+    color: 'white',
   },
   highlightedPhoto: {
     borderWidth: 3,
-    borderColor: 'blue',
+    borderColor: 'white',
   },
 });

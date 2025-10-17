@@ -1,15 +1,17 @@
-import { StyleSheet, Text, View, Button, Image, Alert } from "react-native";
+import { StyleSheet, Text, View, Button, Image, Alert, TouchableOpacity } from "react-native";
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useState, useRef } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
+import Gallery from '../gallery';
 
 const photosDir = FileSystem.documentDirectory + 'photos/';
 
 export default function Page() {
   const [permission, requestPermission] = useCameraPermissions();
   const [photo, setPhoto] = useState();
+  const [showCamera, setShowCamera] = useState(false);
   const cameraRef = useRef(null);
   const router = useRouter();
 
@@ -29,7 +31,7 @@ export default function Page() {
     // Camera permissions are not granted yet.
     return (
       <View style={styles.container}>
-        <Text style={{ textAlign: 'center' }}>We need your permission to show the camera</Text>
+        <Text style={{ textAlign: 'center', color: 'white' }}>We need your permission to show the camera</Text>
         <Button onPress={requestPermission} title="grant permission" />
       </View>
     );
@@ -39,6 +41,7 @@ export default function Page() {
     if (cameraRef.current) {
       const newPhoto = await cameraRef.current.takePictureAsync({ base64: true });
       setPhoto(newPhoto);
+      setShowCamera(false);
     }
   };
 
@@ -54,8 +57,8 @@ export default function Page() {
       Image.getSize(uri, (width, height) => {
         if (width < 600 || height < 600) {
           Alert.alert(
-            'Resolution Too Low',
-            `Photo is too small (${width}×${height}). Please upload a higher resolution image (at least 600×600 pixels).`
+            'Image Resolution Too Low',
+            `The selected photo is too small (${width}x${height} pixels). Please choose an image with a minimum resolution of 600x600 pixels to ensure good print quality.`
           );
         } else {
           setPhoto({ uri: uri, base64: null });
@@ -73,7 +76,7 @@ export default function Page() {
       to: dest,
     });
     setPhoto(undefined);
-    router.push('/gallery');
+    router.push('/');
   };
 
   if (photo) {
@@ -82,48 +85,104 @@ export default function Page() {
         <Image style={styles.preview} source={{ uri: photo.uri || "data:image/jpg;base64," + photo.base64 }} />
         <View style={styles.centeredButtonContainer}>
           <Button title="Save" onPress={savePhoto} />
+          <Button title="Discard" onPress={() => setPhoto(undefined)} />
         </View>
       </View>
     );
   }
 
+  if (showCamera) {
+    return (
+      <View style={styles.container}>
+        <CameraView style={styles.camera} ref={cameraRef}>
+          <View style={styles.cameraButtonContainer}>
+            <Button title="Take Photo" onPress={takePhoto} />
+            <Button title="Cancel" onPress={() => setShowCamera(false)} />
+          </View>
+        </CameraView>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <CameraView style={styles.camera} ref={cameraRef}>
-        <View style={styles.buttonContainer}>
-          <Button title="Take Photo" onPress={takePhoto} />
-          <Button title="Upload Photo" onPress={pickImage} />
-        </View>
-      </CameraView>
+    <View style={styles.mainContainer}>
+      <View style={styles.galleryContainer}>
+        <Gallery />
+      </View>
+      <View style={styles.mainButtonContainer}>
+        <TouchableOpacity style={styles.materialButton} onPress={() => setShowCamera(true)}>
+          <Text style={styles.materialButtonText}>Take Photo</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.materialButton} onPress={pickImage}>
+          <Text style={styles.materialButtonText}>Upload Photo</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    backgroundColor: '#BBDEFB',
+    justifyContent: 'space-between',
+    paddingBottom: 20,
+  },
   container: {
     flex: 1,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    backgroundColor: '#BBDEFB',
+  },
+  galleryContainer: {
+    flex: 0.7,
   },
   camera: {
     flex: 1,
   },
-  buttonContainer: {
-    flex: 1,
+  cameraButtonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
     flexDirection: 'row',
     backgroundColor: 'transparent',
-    margin: 64,
-    alignItems: 'flex-end',
-    justifyContent: 'center',
+    margin: 0,
+    paddingBottom: 20,
+    justifyContent: 'space-around',
+  },
+  mainButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  materialButton: {
+    backgroundColor: '#6200ee',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 4,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  materialButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   preview: {
-    width: '50%',
-    height: '50%',
+    flex: 1,
+    width: '100%',
+    height: '100%',
     alignSelf: 'center',
     resizeMode: 'contain',
   },
   centeredButtonContainer: {
-    flex: 1,
-    justifyContent: 'center',
+    flex: 0.2,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     alignItems: 'center',
-  }
+  },
 });
