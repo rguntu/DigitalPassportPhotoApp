@@ -2,9 +2,9 @@ import { StyleSheet, Text, View, Button, Image, Alert, TouchableOpacity } from "
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useState, useRef } from 'react';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
 import * as FileSystem from 'expo-file-system';
 import Gallery from '../gallery';
+import PreviewModal from './preview';
 
 const photosDir = FileSystem.documentDirectory + 'photos/';
 
@@ -12,8 +12,19 @@ export default function Page() {
   const [permission, requestPermission] = useCameraPermissions();
   const [photo, setPhoto] = useState();
   const [showCamera, setShowCamera] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewUri, setPreviewUri] = useState(null);
   const cameraRef = useRef(null);
-  const router = useRouter();
+
+  const handleShowPreview = (uri) => {
+    setPreviewUri(uri);
+    setShowPreviewModal(true);
+  };
+
+  const handleClosePreview = () => {
+    setShowPreviewModal(false);
+    setPreviewUri(null);
+  };
 
   const ensureDirExists = async () => {
     const dirInfo = await FileSystem.getInfoAsync(photosDir);
@@ -76,7 +87,7 @@ export default function Page() {
       to: dest,
     });
     setPhoto(undefined);
-    router.push('/');
+    handleShowPreview(dest);
   };
 
   if (photo) {
@@ -107,7 +118,7 @@ export default function Page() {
   return (
     <View style={styles.mainContainer}>
       <View style={styles.galleryContainer}>
-        <Gallery />
+        <Gallery onPressProcessedPhoto={handleShowPreview} />
       </View>
       <View style={styles.mainButtonContainer}>
         <TouchableOpacity style={styles.materialButton} onPress={() => setShowCamera(true)}>
@@ -117,6 +128,7 @@ export default function Page() {
           <Text style={styles.materialButtonText}>Upload Photo</Text>
         </TouchableOpacity>
       </View>
+      <PreviewModal isVisible={showPreviewModal} onClose={handleClosePreview} uri={previewUri} />
     </View>
   );
 }

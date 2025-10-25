@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View, FlatList, Image, Button, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Image, ActivityIndicator, Alert, TouchableOpacity, Modal } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useState, useCallback, useEffect } from 'react';
 import * as FileSystem from 'expo-file-system';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -9,11 +10,100 @@ import '@tensorflow/tfjs-react-native';
 import * as blazeface from '@tensorflow-models/blazeface';
 import { decodeJpeg } from '@tensorflow/tfjs-react-native';
 import * as ExpoGl from 'expo-gl';
+import { getPassportRequirements, passportConfigs } from './passportConfig';
 
 
 const photosDir = FileSystem.documentDirectory + 'photos/';
 
-export default function Gallery() {
+const countries = [
+  { label: 'US', value: 'US' },
+  { label: 'UK', value: 'UK' },
+];
+
+const GalleryPhoto = ({ item, highlightedPhotoUri, isProcessing, processingStatus, deletePhoto, processPhoto, onPressProcessedPhoto }) => {
+  const isProcessed = item.includes('_processed');
+  const [selectedCountry, setSelectedCountry] = useState('');
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
+
+  const selectCountry = (countryValue) => {
+    setSelectedCountry(countryValue);
+    setShowCountryPicker(false);
+    processPhoto(item, countryValue);
+  };
+
+  return (
+    <View style={styles.cellContainer}>
+      <View style={[styles.photoContainer, item === highlightedPhotoUri && styles.highlightedPhoto]}>
+        <TouchableOpacity
+          onPress={() => {
+            if (isProcessed) {
+              onPressProcessedPhoto(item);
+            } else {
+              setShowCountryPicker(true);
+            }
+          }}
+          disabled={isProcessing === item}
+        >
+          <Image
+            style={styles.photo}
+            source={{ uri: item }}
+            onError={(e) => {
+              console.error("GalleryPhoto: Image loading error:", e.nativeEvent.error, "for URI:", item);
+            }}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.deleteButton} onPress={() => deletePhoto(item)}>
+          <Text style={styles.deleteButtonText}>X</Text>
+        </TouchableOpacity>
+        {isProcessing === item && (
+          <View style={styles.overlayContainer}>
+            <ActivityIndicator size="large" color="white" />
+            <Text style={styles.processingStatusText}>{processingStatus}</Text>
+          </View>
+        )}
+      </View>
+      {!isProcessed && (
+        <>
+          <TouchableOpacity onPress={() => setShowCountryPicker(true)} style={styles.countrySelectorButton}>
+            <Text style={styles.countrySelectorButtonText}>
+              {selectedCountry || 'Select Country'}
+            </Text>
+            <MaterialIcons name="arrow-drop-down" size={24} color="black" />
+          </TouchableOpacity>
+
+          <Modal
+            transparent={true}
+            visible={showCountryPicker}
+            onRequestClose={() => setShowCountryPicker(false)}
+          >
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPressOut={() => setShowCountryPicker(false)}
+            >
+              <View style={styles.modalContainer}>
+                <FlatList
+                  data={countries}
+                  keyExtractor={(item) => item.value}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={styles.countryItem}
+                      onPress={() => selectCountry(item.value)}
+                    >
+                      <Text style={styles.countryItemText}>{item.label}</Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        </>
+      )}
+    </View>
+  );
+};
+
+export default function Gallery({ onPressProcessedPhoto }) {
   const [unprocessedPhotos, setUnprocessedPhotos] = useState([]);
   const [processedPhotos, setProcessedPhotos] = useState([]);
   const [activeTab, setActiveTab] = useState('unprocessed');
@@ -24,9 +114,14 @@ export default function Gallery() {
   const router = useRouter();
 
   const loadModel = async () => {
-    await tf.ready();
-    const loadedModel = await blazeface.load();
-    setModel(loadedModel);
+    try {
+      await tf.ready();
+      const model = await blazeface.load();
+      setModel(model);
+    } catch (error) {
+      console.error("Error loading BlazeFace model: ", error);
+      Alert.alert("Model Error", "Could not load the face detection model. Please check your internet connection and try again.");
+    }
   };
 
   useState(() => {
@@ -74,44 +169,104 @@ export default function Gallery() {
     return predictions;
   };
 
-  const processPhoto = async (uri) => {
+  const processPhoto = async (uri, countryCode) => {
     if (!model) {
       Alert.alert("Error", "Model not loaded yet. Please wait.");
       return;
     }
+    if (!countryCode) {
+      Alert.alert("Error", "Please select a country before processing the photo.");
+      return;
+    }
     setIsProcessing(uri);
     try {
+      const requirements = getPassportRequirements(countryCode);
+      const { outputWidthPx, outputHeightPx, headHeightMinPx, headHeightMaxPx, eyeHeightFromBottomMinPx, eyeHeightFromBottomMaxPx } = requirements;
+
       // 1. Duplicate Photo
       console.log("Processing: Duplicating photo...");
       const duplicatedUri = `${FileSystem.cacheDirectory}${Date.now()}.png`;
       await FileSystem.copyAsync({ from: uri, to: duplicatedUri });
 
+      // Rotate image to portrait if needed (assuming 0 degrees is portrait)
+      const rotatedUri = await ImageManipulator.manipulateAsync(
+        duplicatedUri,
+        [{ rotate: 0 }], // Rotate to 0 degrees (portrait)
+        { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
+      );
+
       // 2. Face Detection with BlazeFace
       setProcessingStatus("Detecting face...");
-      const predictions = await detectFaceWithBlazeFace(duplicatedUri);
+      const predictions = await detectFaceWithBlazeFace(rotatedUri.uri);
 
       if (predictions.length === 0) {
-        Alert.alert("Error", "No face detected in the photo.");
+        Alert.alert("Error", "No face detected in the photo. Please ensure your face is clearly visible and well-lit.");
         setIsProcessing(null);
         return;
       }
 
       const face = predictions[0];
-      const topLeft = face.topLeft;
-      const bottomRight = face.bottomRight;
-      const faceWidth = bottomRight[0] - topLeft[0];
-      const faceHeight = bottomRight[1] - topLeft[1];
+      const topLeft = face.topLeft; // [x, y] of top-left corner of face bounding box
+      const bottomRight = face.bottomRight; // [x, y] of bottom-right corner of face bounding box
 
-      // 3. Background Segmentation
+      const detectedFaceWidth = bottomRight[0] - topLeft[0];
+      const detectedFaceHeight = bottomRight[1] - topLeft[1];
+      const detectedEyeCenterY = topLeft[1] + (detectedFaceHeight * 0.35); // Approximate eye center
+
+      // Get image dimensions after background removal
       setProcessingStatus("Segmenting background...");
       const removedBgUri = await removeBackground(duplicatedUri);
+      const { width: imgWidth, height: imgHeight } = await new Promise((resolve, reject) => {
+        Image.getSize(removedBgUri, (width, height) => resolve({ width, height }), reject);
+      });
 
-      // 4. Crop & Resize
+      // 4. Calculate Crop & Resize based on Passport Requirements
       setProcessingStatus("Cropping to passport size...");
-      const cropWidth = faceWidth * 2;
-      const cropHeight = cropWidth;
-      const originX = topLeft[0] - (cropWidth - faceWidth) / 2;
-      const originY = topLeft[1] - (cropHeight - faceHeight) / 2;
+
+      // Calculate the target head height and eye height in the final output image
+      // Aim for the minimum head height to reduce zooming in
+      const targetHeadHeight = headHeightMinPx;
+      const targetEyeHeightFromBottom = (eyeHeightFromBottomMinPx + eyeHeightFromBottomMaxPx) / 2; // Aim for the middle
+
+      // Calculate the scale factor needed to make the detected face height match the target head height
+      let scaleFactor = targetHeadHeight / detectedFaceHeight;
+
+      // Ensure the scale factor doesn't make the face larger than headHeightMaxPx
+      const maxScaleFactor = headHeightMaxPx / detectedFaceHeight;
+      scaleFactor = Math.min(scaleFactor, maxScaleFactor);
+
+      // Calculate the scaled dimensions of the original image
+      const scaledImgWidth = imgWidth * scaleFactor;
+      const scaledImgHeight = imgHeight * scaleFactor;
+
+      // Calculate the scaled position of the detected face and eye center
+      const scaledTopLeftX = topLeft[0] * scaleFactor;
+      const scaledTopLeftY = topLeft[1] * scaleFactor;
+      const scaledDetectedEyeCenterY = detectedEyeCenterY * scaleFactor;
+
+      // Calculate the target eye position from the top of the final output image
+      const targetEyeYFromTop = outputHeightPx - targetEyeHeightFromBottom;
+
+      // Calculate the vertical offset needed to align eyes in the scaled image
+      const offsetY = targetEyeYFromTop - scaledDetectedEyeCenterY;
+
+      // Calculate the crop origin in the scaled image's coordinate system
+      let cropOriginXScaled = (scaledImgWidth / 2) - (outputWidthPx / 2);
+      let cropOriginYScaled = scaledTopLeftY + offsetY; // Adjust based on scaled face top and eye offset
+
+      // Convert crop origin back to original image's coordinate system
+      let originX = cropOriginXScaled / scaleFactor;
+      let originY = cropOriginYScaled / scaleFactor;
+
+      // Calculate crop width and height in the original image's coordinate system
+      let cropWidth = outputWidthPx / scaleFactor;
+      let cropHeight = outputHeightPx / scaleFactor;
+
+      // Ensure crop rectangle is within image bounds
+      originX = Math.max(0, originX);
+      originY = Math.max(0, originY);
+      cropWidth = Math.min(cropWidth, imgWidth - originX);
+      cropHeight = Math.min(cropHeight, imgHeight - originY);
 
       const croppedPhoto = await ImageManipulator.manipulateAsync(
         removedBgUri,
@@ -121,17 +276,19 @@ export default function Gallery() {
 
       const finalPhoto = await ImageManipulator.manipulateAsync(
         croppedPhoto.uri,
-        [{ resize: { width: 600, height: 600 } }],
+        [{ resize: { width: outputWidthPx, height: outputHeightPx } }],
         { compress: 1, format: ImageManipulator.SaveFormat.PNG }
       );
 
-      const filename = `${Date.now()}_processed.png`;
+      const originalFilename = uri.split('/').pop();
+      const baseName = originalFilename.split('.')[0];
+      const filename = `${baseName}_processed.png`;
       const dest = photosDir + filename;
       await FileSystem.copyAsync({
         from: finalPhoto.uri,
         to: dest,
       });
-      await FileSystem.deleteAsync(uri); // Delete original photo
+      // await FileSystem.deleteAsync(uri); // Keep original photo
       loadPhotos();
       setHighlightedPhotoUri(dest);
       setActiveTab('processed');
@@ -162,22 +319,19 @@ export default function Gallery() {
     );
   };
 
-  const renderPhoto = ({ item }) => (
-    <View style={[styles.photoContainer, item === highlightedPhotoUri && styles.highlightedPhoto]}>
-      <Image style={styles.photo} source={{ uri: item }} />
-      <TouchableOpacity style={styles.deleteButton} onPress={() => deletePhoto(item)}>
-        <Text style={styles.deleteButtonText}>X</Text>
-      </TouchableOpacity>
-      {isProcessing === item ? (
-        <View>
-          <ActivityIndicator size="small" color="white" />
-          <Text style={styles.processingStatusText}>{processingStatus}</Text>
-        </View>
-      ) : (
-        !item.includes('_processed') && <Button title="Process Photo" onPress={() => processPhoto(item)} />
-      )}
-    </View>
-  );
+  const renderPhoto = ({ item }) => {
+    return (
+      <GalleryPhoto
+        item={item}
+        highlightedPhotoUri={highlightedPhotoUri}
+        isProcessing={isProcessing}
+        processingStatus={processingStatus}
+        deletePhoto={deletePhoto}
+        processPhoto={processPhoto}
+        onPressProcessedPhoto={onPressProcessedPhoto}
+      />
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -189,6 +343,7 @@ export default function Gallery() {
           <Text style={styles.tabText}>Processed</Text>
         </TouchableOpacity>
       </View>
+
       <FlatList
         data={activeTab === 'unprocessed' ? unprocessedPhotos : processedPhotos}
         keyExtractor={(item) => item}
@@ -224,17 +379,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: 'white',
   },
+  cellContainer: {
+    width: '30%',
+    marginHorizontal: '1%',
+    marginBottom: '2%', // Adjust as needed for spacing between rows
+  },
   photoContainer: {
-    flex: 1 / 3,
+    width: '100%',
     aspectRatio: 1,
-    padding: 0,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
     position: 'relative',
+    marginBottom: 0, // Ensure no gap between photo and country selector
   },
   photo: {
     width: '100%',
     height: '100%',
+    resizeMode: 'cover',
   },
   deleteButton: {
     position: 'absolute',
@@ -252,13 +411,44 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 18,
   },
-  processingStatusText: {
-    marginTop: 5,
-    fontSize: 12,
-    color: 'white',
-  },
   highlightedPhoto: {
     borderWidth: 3,
     borderColor: 'white',
+  },
+  countrySelectorButton: {
+    backgroundColor: 'white',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 0, // Ensure no gap
+  },
+  countrySelectorButtonText: {
+    color: 'black',
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 10,
+    width: '80%',
+    maxHeight: '50%',
+  },
+  countryItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  countryItemText: {
+    fontSize: 16,
+    color: 'black',
   },
 });
