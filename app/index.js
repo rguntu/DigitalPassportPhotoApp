@@ -43,7 +43,9 @@ export default function Page() {
     return (
       <View style={styles.container}>
         <Text style={{ textAlign: 'center', color: 'white' }}>We need your permission to show the camera</Text>
-        <Button onPress={requestPermission} title="grant permission" />
+        <TouchableOpacity style={styles.materialButton} onPress={requestPermission}>
+          <Text style={styles.materialButtonText}>Grant Permission</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -95,8 +97,12 @@ export default function Page() {
       <View style={styles.container}>
         <Image style={styles.preview} source={{ uri: photo.uri || "data:image/jpg;base64," + photo.base64 }} />
         <View style={styles.centeredButtonContainer}>
-          <Button title="Save" onPress={savePhoto} />
-          <Button title="Discard" onPress={() => setPhoto(undefined)} />
+          <TouchableOpacity style={styles.materialButton} onPress={savePhoto}>
+            <Text style={styles.materialButtonText}>Save</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.materialButton} onPress={() => setPhoto(undefined)}>
+            <Text style={styles.materialButtonText}>Discard</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -107,8 +113,12 @@ export default function Page() {
       <View style={styles.container}>
         <CameraView style={styles.camera} ref={cameraRef}>
           <View style={styles.cameraButtonContainer}>
-            <Button title="Take Photo" onPress={takePhoto} />
-            <Button title="Cancel" onPress={() => setShowCamera(false)} />
+            <TouchableOpacity style={styles.materialButton} onPress={takePhoto}>
+              <Text style={styles.materialButtonText}>Take Photo</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.materialButton} onPress={() => setShowCamera(false)}>
+              <Text style={styles.materialButtonText}>Cancel</Text>
+            </TouchableOpacity>
           </View>
         </CameraView>
       </View>
@@ -168,15 +178,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   materialButton: {
-    backgroundColor: '#6200ee',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 4,
+    backgroundColor: '#0c4d9dee',
+    paddingVertical: 10,
+    paddingHorizontal: 10, // Reduced horizontal padding
+    borderRadius: 8,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    width: '40%', // Set width to 40%
   },
   materialButtonText: {
     color: 'white',

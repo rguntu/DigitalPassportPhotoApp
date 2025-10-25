@@ -8,52 +8,56 @@ export default function PreviewModal({ isVisible, onClose, uri }) {
   const router = useRouter();
 
   const handlePrint = async () => {
-    const html = `
-      <html>
-        <head>
-          <style>
-            @page {
-              size: 4in 6in;
-              margin: 0;
-            }
-            body {
-              margin: 0;
-              width: 4in;
-              height: 6in;
-            }
-            .grid-container {
-              display: flex;
-              flex-wrap: wrap;
-              width: 100%;
-              height: 100%;
-            }
-            .grid-item {
-              width: 2in;
-              height: 2in;
-              box-sizing: border-box;
-            }
-            img {
-              width: 100%;
-              height: 100%;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="grid-container">
-            <div class="grid-item"><img src="${uri}" /></div>
-            <div class="grid-item"><img src="${uri}" /></div>
-            <div class="grid-item"><img src="${uri}" /></div>
-            <div class="grid-item"><img src="${uri}" /></div>
-            <div class="grid-item"><img src="${uri}" /></div>
-            <div class="grid-item"><img src="${uri}" /></div>
-          </div>
-        </body>
-      </html>
-    `;
+    try {
+      const html = `
+        <html>
+          <head>
+            <style>
+              @page {
+                size: 4in 6in;
+                margin: 0;
+              }
+              body {
+                margin: 0;
+                width: 4in;
+                height: 6in;
+              }
+              .grid-container {
+                display: flex;
+                flex-wrap: wrap;
+                width: 100%;
+                height: 100%;
+              }
+              .grid-item {
+                width: 2in;
+                height: 2in;
+                box-sizing: border-box;
+              }
+              img {
+                width: 100%;
+                height: 100%;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="grid-container">
+              <div class="grid-item"><img src="${uri}" /></div>
+              <div class="grid-item"><img src="${uri}" /></div>
+              <div class="grid-item"><img src="${uri}" /></div>
+              <div class="grid-item"><img src="${uri}" /></div>
+              <div class="grid-item"><img src="${uri}" /></div>
+              <div class="grid-item"><img src="${uri}" /></div>
+            </div>
+          </body>
+        </html>
+      `;
 
-    await Print.printAsync({
-      html,
-    });
+      await Print.printAsync({
+        html,
+      });
+    } catch (error) {
+      console.error("Printing error:", error);
+    }
   };
 
   const handleShare = async () => {

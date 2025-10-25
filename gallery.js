@@ -345,10 +345,12 @@ export default function Gallery({ onPressProcessedPhoto }) {
       </View>
 
       <FlatList
+        key={activeTab}
         data={activeTab === 'unprocessed' ? unprocessedPhotos : processedPhotos}
         keyExtractor={(item) => item}
-        numColumns={3}
+        numColumns={2}
         renderItem={renderPhoto}
+        style={{ marginTop: 0 }}
       />
     </View>
   );
@@ -361,28 +363,31 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'white',
+    justifyContent: 'space-between',
+    paddingVertical: 0,
     backgroundColor: 'transparent',
+    width: '96%', // Match approximate width of photo grid
+    alignSelf: 'center', // Center the tab container
+    marginTop: 10, // Add a small top margin for separation from the top of the screen
   },
   tab: {
-    padding: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    width: '48%', // Distribute width evenly for two tabs
+    alignItems: 'center',
   },
   activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: 'white',
+    backgroundColor: '#0c4d9dee',
   },
   tabText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     color: 'white',
   },
   cellContainer: {
-    width: '30%',
-    marginHorizontal: '1%',
-    marginBottom: '2%', // Adjust as needed for spacing between rows
+    width: '45%',
+    margin: '2.5%',
   },
   photoContainer: {
     width: '100%',
@@ -399,7 +404,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 5,
     right: 5,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(102, 119, 140, 0.7)', // Lighter blue with some transparency
     borderRadius: 15,
     width: 30,
     height: 30,
@@ -416,18 +421,19 @@ const styles = StyleSheet.create({
     borderColor: 'white',
   },
   countrySelectorButton: {
-    backgroundColor: 'white',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 5,
+    backgroundColor: '#0c4d9dee',
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+    borderRadius: 8,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 0, // Ensure no gap
   },
   countrySelectorButtonText: {
-    color: 'black',
+    color: 'white',
     fontWeight: 'bold',
+    fontSize: 14, // Reduced font size
   },
   modalOverlay: {
     flex: 1,
