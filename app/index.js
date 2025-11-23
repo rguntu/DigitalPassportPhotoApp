@@ -4,7 +4,8 @@ import { useState, useRef } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import Gallery from '../gallery';
-import PreviewModal from './preview';
+import PaymentProcessModal from './payment_process';
+import { useLocalSearchParams } from 'expo-router';
 
 const photosDir = FileSystem.documentDirectory + 'photos/';
 
@@ -12,18 +13,21 @@ export default function Page() {
   const [permission, requestPermission] = useCameraPermissions();
   const [photo, setPhoto] = useState();
   const [showCamera, setShowCamera] = useState(false);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [previewUri, setPreviewUri] = useState(null);
+  const [showPaymentProcessModal, setShowPaymentProcessModal] = useState(false);
+  const [paymentProcessUri, setPaymentProcessUri] = useState(null);
+  const [photoCount, setPhotoCount] = useState(6);
   const cameraRef = useRef(null);
+  const { tab } = useLocalSearchParams();
 
-  const handleShowPreview = (uri) => {
-    setPreviewUri(uri);
-    setShowPreviewModal(true);
+  const handleShowPaymentProcess = (uri, count = 6) => {
+    setPaymentProcessUri(uri);
+    setPhotoCount(count);
+    setShowPaymentProcessModal(true);
   };
 
-  const handleClosePreview = () => {
-    setShowPreviewModal(false);
-    setPreviewUri(null);
+  const handleClosePaymentProcess = () => {
+    setShowPaymentProcessModal(false);
+    setPaymentProcessUri(null);
   };
 
   const ensureDirExists = async () => {
@@ -89,13 +93,13 @@ export default function Page() {
       to: dest,
     });
     setPhoto(undefined);
-    handleShowPreview(dest);
+    // handleShowPaymentProcess(dest); // Removed to prevent immediate modal display
   };
 
   if (photo) {
     return (
       <View style={styles.container}>
-        <Image style={styles.preview} source={{ uri: photo.uri || "data:image/jpg;base64," + photo.base64 }} />
+        <Image style={styles.paymentProcess} source={{ uri: photo.uri || "data:image/jpg;base64," + photo.base64 }} />
         <View style={styles.centeredButtonContainer}>
           <TouchableOpacity style={styles.materialButton} onPress={savePhoto}>
             <Text style={styles.materialButtonText}>Save</Text>
@@ -128,8 +132,7 @@ export default function Page() {
   return (
     <View style={styles.mainContainer}>
       <View style={styles.galleryContainer}>
-        <Gallery onPressProcessedPhoto={handleShowPreview} />
-      </View>
+                  <Gallery onPressProcessedPhoto={handleShowPaymentProcess} initialTab={tab} />      </View>
       <View style={styles.mainButtonContainer}>
         <TouchableOpacity style={styles.materialButton} onPress={() => setShowCamera(true)}>
           <Text style={styles.materialButtonText}>Take Photo</Text>
@@ -138,25 +141,27 @@ export default function Page() {
           <Text style={styles.materialButtonText}>Upload Photo</Text>
         </TouchableOpacity>
       </View>
-      <PreviewModal isVisible={showPreviewModal} onClose={handleClosePreview} uri={previewUri} />
-    </View>
+                <PaymentProcessModal isVisible={showPaymentProcessModal} onClose={handleClosePaymentProcess} uri={paymentProcessUri} photoCount={photoCount} />    </View>
   );
 }
 
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#BBDEFB',
+    backgroundColor: '#d6e5f1ff',
     justifyContent: 'space-between',
     paddingBottom: 20,
+    width: '100%',
+    height: '100%',
   },
   container: {
     flex: 1,
     justifyContent: 'center',
-    backgroundColor: '#BBDEFB',
+    backgroundColor: '#d6e5f1ff',
   },
   galleryContainer: {
-    flex: 0.7,
+    flex: 1,
+    width: '100%',
   },
   camera: {
     flex: 1,
@@ -174,14 +179,16 @@ const styles = StyleSheet.create({
   mainButtonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingHorizontal: 20,
+    //paddingHorizontal: 20,
     marginBottom: 20,
+    width: '100%',
+    alignSelf: 'center',
   },
   materialButton: {
-    backgroundColor: '#0c4d9dee',
+    backgroundColor: '#198ff0ff',
     paddingVertical: 10,
     paddingHorizontal: 10, // Reduced horizontal padding
-    borderRadius: 8,
+    borderRadius: 20,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -195,7 +202,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
-  preview: {
+  paymentProcess: {
     flex: 1,
     width: '100%',
     height: '100%',

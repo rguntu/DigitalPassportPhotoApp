@@ -11,7 +11,7 @@
                 "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
             },
             "cache": {
-                "key": "v1",
+                "key": "v2",
                 "paths": [
                     "node_modules",
                     "ios/Pods"
@@ -28,7 +28,7 @@
                 "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
             },
             "cache": {
-                "key": "v1",
+                "key": "v2",
                 "paths": [
                     "node_modules",
                     "ios/Pods"
@@ -41,7 +41,7 @@
                 "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
             },
             "cache": {
-                "key": "v1",
+                "key": "v2",
                 "paths": [
                     "node_modules",
                     "ios/Pods"
@@ -54,7 +54,7 @@
                 "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
             },
             "cache": {
-                "key": "v1",
+                "key": "v2",
                 "paths": [
                     "node_modules",
                     "ios/Pods",

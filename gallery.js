@@ -21,6 +21,7 @@ const countries = [
 ];
 
 const GalleryPhoto = ({ item, highlightedPhotoUri, isProcessing, processingStatus, deletePhoto, processPhoto, onPressProcessedPhoto }) => {
+  const router = useRouter();
   const isProcessed = item.includes('_processed');
   const [selectedCountry, setSelectedCountry] = useState('');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
@@ -99,14 +100,30 @@ const GalleryPhoto = ({ item, highlightedPhotoUri, isProcessing, processingStatu
           </Modal>
         </>
       )}
+      {isProcessed && (
+        <View style={styles.processedButtonsContainer}>
+          <TouchableOpacity 
+            style={styles.processedButton}
+            onPress={() => router.push({ pathname: '/six-photo-preview', params: { photoUri: item, photoCount: 2 } })}
+          >
+            <Text style={styles.processedButtonText}>2 Photos</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.processedButton}
+            onPress={() => onPressProcessedPhoto(item, 6)}
+          >
+            <Text style={styles.processedButtonText}>6 Photos ($1)</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
 
-export default function Gallery({ onPressProcessedPhoto }) {
+export default function Gallery({ onPressProcessedPhoto, initialTab }) {
   const [unprocessedPhotos, setUnprocessedPhotos] = useState([]);
   const [processedPhotos, setProcessedPhotos] = useState([]);
-  const [activeTab, setActiveTab] = useState('unprocessed');
+  const [activeTab, setActiveTab] = useState(initialTab || 'unprocessed');
   const [isProcessing, setIsProcessing] = useState(null);
   const [processingStatus, setProcessingStatus] = useState('');
   const [model, setModel] = useState(null);
@@ -215,9 +232,17 @@ export default function Gallery({ onPressProcessedPhoto }) {
 
       // Get image dimensions after background removal
       setProcessingStatus("Segmenting background...");
-      const removedBgUri = await removeBackground(duplicatedUri);
+      let removedBgUri = await removeBackground(duplicatedUri);
+
+      // Convert to JPEG to fill transparent background with white
+      removedBgUri = await ImageManipulator.manipulateAsync(
+        removedBgUri,
+        [],
+        { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
+      );
+
       const { width: imgWidth, height: imgHeight } = await new Promise((resolve, reject) => {
-        Image.getSize(removedBgUri, (width, height) => resolve({ width, height }), reject);
+        Image.getSize(removedBgUri.uri, (width, height) => resolve({ width, height }), reject);
       });
 
       // 4. Calculate Crop & Resize based on Passport Requirements
@@ -269,7 +294,7 @@ export default function Gallery({ onPressProcessedPhoto }) {
       cropHeight = Math.min(cropHeight, imgHeight - originY);
 
       const croppedPhoto = await ImageManipulator.manipulateAsync(
-        removedBgUri,
+        removedBgUri.uri,
         [{ crop: { originX, originY, width: cropWidth, height: cropHeight } }],
         { compress: 1, format: ImageManipulator.SaveFormat.PNG }
       );
@@ -359,7 +384,8 @@ export default function Gallery({ onPressProcessedPhoto }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#BBDEFB',
+    backgroundColor: '#d6e5f1ff',
+    width: '100%',
   },
   tabContainer: {
     flexDirection: 'row',
@@ -373,12 +399,12 @@ const styles = StyleSheet.create({
   tab: {
     paddingVertical: 8,
     paddingHorizontal: 15,
-    borderRadius: 8,
+    borderRadius: 20,
     width: '48%', // Distribute width evenly for two tabs
     alignItems: 'center',
   },
   activeTab: {
-    backgroundColor: '#0c4d9dee',
+    backgroundColor: '#198ff0ff',
   },
   tabText: {
     fontSize: 14,
@@ -405,7 +431,7 @@ const styles = StyleSheet.create({
     top: 5,
     right: 5,
     backgroundColor: 'rgba(102, 119, 140, 0.7)', // Lighter blue with some transparency
-    borderRadius: 15,
+    borderRadius: 20,
     width: 30,
     height: 30,
     justifyContent: 'center',
@@ -421,10 +447,10 @@ const styles = StyleSheet.create({
     borderColor: 'white',
   },
   countrySelectorButton: {
-    backgroundColor: '#0c4d9dee',
+    backgroundColor: '#198ff0ff',
     paddingVertical: 2,
     paddingHorizontal: 4,
-    borderRadius: 8,
+    borderRadius: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -456,5 +482,23 @@ const styles = StyleSheet.create({
   countryItemText: {
     fontSize: 16,
     color: 'black',
+  },
+  processedButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 5,
+  },
+  processedButton: {
+    backgroundColor: '#198ff0ff',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    width: '48%',
+    alignItems: 'center',
+  },
+  processedButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 8,
   },
 });
