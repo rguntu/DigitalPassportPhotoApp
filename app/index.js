@@ -132,7 +132,8 @@ export default function Page() {
   return (
     <View style={styles.mainContainer}>
       <View style={styles.galleryContainer}>
-                  <Gallery onPressProcessedPhoto={handleShowPaymentProcess} initialTab={tab} />      </View>
+        <Gallery onPressProcessedPhoto={handleShowPaymentProcess} initialTab={tab} />
+      </View>
       <View style={styles.mainButtonContainer}>
         <TouchableOpacity style={styles.materialButton} onPress={() => setShowCamera(true)}>
           <Text style={styles.materialButtonText}>Take Photo</Text>
@@ -141,7 +142,8 @@ export default function Page() {
           <Text style={styles.materialButtonText}>Upload Photo</Text>
         </TouchableOpacity>
       </View>
-                <PaymentProcessModal isVisible={showPaymentProcessModal} onClose={handleClosePaymentProcess} uri={paymentProcessUri} photoCount={photoCount} />    </View>
+      <PaymentProcessModal isVisible={showPaymentProcessModal} onClose={handleClosePaymentProcess} uri={paymentProcessUri} photoCount={photoCount} />
+    </View>
   );
 }
 
