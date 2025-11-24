@@ -104,7 +104,7 @@ const GalleryPhoto = ({ item, highlightedPhotoUri, isProcessing, processingStatu
         <View style={styles.processedButtonsContainer}>
           <TouchableOpacity 
             style={styles.processedButton}
-            onPress={() => router.push({ pathname: '/six-photo-preview', params: { photoUri: item, photoCount: 2 } })}
+            onPress={() => router.push({ pathname: '/share_print', params: { photoUri: item, photoCount: 2 } })}
           >
             <Text style={styles.processedButtonText}>2 Photos</Text>
           </TouchableOpacity>

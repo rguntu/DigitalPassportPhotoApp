@@ -3,11 +3,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useRef } from 'react';
+import ViewShot from 'react-native-view-shot';
 
 export default function SixPhotoPreviewScreen() {
   const router = useRouter();
   const { photoUri, photoCount: paramPhotoCount } = useLocalSearchParams();
   const actualPhotoCount = paramPhotoCount ? parseInt(paramPhotoCount, 10) : 6;
+  const viewShotRef = useRef();
 
   const handlePrint = async () => {
     if (!photoUri) return;
@@ -74,27 +77,36 @@ export default function SixPhotoPreviewScreen() {
       return;
     }
     try {
-      await Sharing.shareAsync(photoUri);
+      const uri = await viewShotRef.current.capture({
+        width: 1200,
+        height: 1800,
+        format: 'jpeg',
+        quality: 0.9,
+      });
+      await Sharing.shareAsync(uri, { mimeType: 'image/jpeg', UTI: 'public.jpeg' });
     } catch (error) {
         Alert.alert("Sharing Error", "Could not share the photo. Please try again later.");
+        console.error("Sharing error:", error);
     }
   };
 
   return (
     <View style={styles.container}>
         <Text style={styles.title}>Your Photos are Ready!</Text>
-        <View style={styles.photoContainer}>
-        {[...Array(6)].map((_, i) => (
-            <View key={i} style={styles.gridPhotoContainer}>
-            {i < actualPhotoCount && photoUri && (
-                <Image
-                style={styles.photo}
-                source={{ uri: photoUri }}
-                />
-            )}
+        <ViewShot ref={viewShotRef}>
+            <View style={styles.photoContainer}>
+            {[...Array(6)].map((_, i) => (
+                <View key={i} style={styles.gridPhotoContainer}>
+                {i < actualPhotoCount && photoUri && (
+                    <Image
+                    style={styles.photo}
+                    source={{ uri: photoUri }}
+                    />
+                )}
+                </View>
+            ))}
             </View>
-        ))}
-        </View>
+        </ViewShot>
         <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.materialButton} onPress={handlePrint}>
                 <Text style={styles.materialButtonText}>Print</Text>
@@ -140,6 +152,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-around',
         alignContent: 'space-around',
         marginBottom: 30,
+        alignSelf: 'center',
     },
     gridPhotoContainer: {
         width: '48%',
