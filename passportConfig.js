@@ -13,16 +13,20 @@ export const passportConfigs = {
     eyeHeightFromBottomMaxPx: 412.5,
     background: "white",
   },
-  // Add configurations for other countries here in the future
   UK: {
     countryCode: "UK",
-    outputWidthPx: 750, // Example: 35mm x 45mm at 500 DPI
-    outputHeightPx: 950,
-    headHeightMinPx: 620, 
-    headHeightMaxPx: 720, 
-    eyeHeightFromBottomMinPx: 450, 
-    eyeHeightFromBottomMaxPx: 650, 
-    background: "cream",
+    // Standard is 35mm x 45mm. Using a higher resolution for quality.
+    // Aspect ratio: 35/45 = 0.777...
+    outputWidthPx: 1050, // 35mm @ 762 DPI
+    outputHeightPx: 1350, // 45mm @ 762 DPI
+    // Head size: 29mm to 34mm from crown to chin.
+    // 29mm @ 762 DPI = ~870px
+    // 34mm @ 762 DPI = ~1020px
+    headHeightMinPx: 870, 
+    headHeightMaxPx: 1020, 
+    eyeHeightFromBottomMinPx: 0, // UK spec does not define eye height, but head position.
+    eyeHeightFromBottomMaxPx: 0, // This should be handled by the oval guide placement.
+    background: "light grey",
   },
   CA: {
     countryCode: "CA",

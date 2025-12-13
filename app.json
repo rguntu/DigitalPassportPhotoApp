@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "DigitalPassportPhotoApp",
-    "slug": "digital-passport-photo-app",
+    "name": "Digital Passport Photo",
+    "slug": "digital-passport-photo",
     "scheme": "com.rgapps.digitalpassportphoto",
     "version": "1.0.0",
     "sdkVersion": "51.0.0",
@@ -9,6 +9,12 @@
       "ios",
       "android"
     ],
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "ios": {
       "bundleIdentifier": "com.rgapps.digitalpassportphoto",
       "deploymentTarget": "15.0",
@@ -20,7 +26,11 @@
     },
     "android": {
       "package": "com.rgapps.digitalpassportphoto",
-      "versionCode": 1
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon1.png",
+        "backgroundColor": "#ffffff"
+      }
     },
     "extra": {
       "eas": {

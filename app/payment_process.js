@@ -4,7 +4,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { MaterialIcons } from '@expo/vector-icons';
 
-export default function PaymentProcessModal({ isVisible, onClose, uri, photoCount }) {
+export default function PaymentProcessModal({ isVisible, onClose, uri, photoCount, onProcessPayment }) {
   const router = useRouter();
 
   const handlePrint = async () => {
@@ -110,7 +110,7 @@ export default function PaymentProcessModal({ isVisible, onClose, uri, photoCoun
             {photoCount === 6 && (
               <TouchableOpacity
                 style={[styles.materialButton, styles.singleButton]}
-                onPress={() => router.push({ pathname: '/payment', params: { photoUri: uri } })}
+                onPress={() => onProcessPayment(uri)}
               >
                 <Text style={styles.materialButtonText}>Process Payment</Text>
               </TouchableOpacity>

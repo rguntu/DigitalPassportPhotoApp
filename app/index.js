@@ -1,23 +1,66 @@
-import { StyleSheet, Text, View, Button, Image, Alert, TouchableOpacity } from "react-native";
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useState, useRef } from 'react';
+import { StyleSheet, Text, View, Image, Alert, TouchableOpacity, Modal } from "react-native";
+import { CameraView, Camera } from 'expo-camera';
+import { useState, useRef, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import Gallery from '../gallery';
 import PaymentProcessModal from './payment_process';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import PermissionsPage from './permissions';
+import PaymentScreen from "./payment"; // Import the PaymentScreen
+import HelperScreen from './helper'; // Import the HelperScreen
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const photosDir = FileSystem.documentDirectory + 'photos/';
 
 export default function Page() {
-  const [permission, requestPermission] = useCameraPermissions();
+  const [hasPermissions, setHasPermissions] = useState(false);
   const [photo, setPhoto] = useState();
   const [showCamera, setShowCamera] = useState(false);
   const [showPaymentProcessModal, setShowPaymentProcessModal] = useState(false);
+  const [showPaymentScreen, setShowPaymentScreen] = useState(false); // New state for our JS modal
+  const [showHelperScreen, setShowHelperScreen] = useState(false);
+  const [paymentResetKey, setPaymentResetKey] = useState(0);
   const [paymentProcessUri, setPaymentProcessUri] = useState(null);
   const [photoCount, setPhotoCount] = useState(6);
   const cameraRef = useRef(null);
-  const { tab } = useLocalSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const cameraPermission = await Camera.getCameraPermissionsAsync();
+      const mediaLibraryPermission = await ImagePicker.getMediaLibraryPermissionsAsync();
+      if (cameraPermission.status === 'granted' && mediaLibraryPermission.status === 'granted') {
+        setHasPermissions(true);
+      }
+    };
+    checkPermissions();
+
+    const checkHelperScreen = async () => {
+      const value = await AsyncStorage.getItem('showHelperScreen');
+      if (value === null) {
+        setShowHelperScreen(true);
+      }
+    };
+    checkHelperScreen();
+  }, []);
+
+  const { tab = 'unprocessed', openHelper } = useLocalSearchParams();
+
+  useEffect(() => {
+    if (openHelper) {
+      setShowHelperScreen(true);
+    }
+  }, [openHelper]);
+  const handleOpenHelper = () => {
+    setShowHelperScreen(true);
+  };
+
+  const handleDismissHelper = async () => {
+    await AsyncStorage.setItem('showHelperScreen', 'false');
+    setShowHelperScreen(false);
+  };
 
   const handleShowPaymentProcess = (uri, count = 6) => {
     setPaymentProcessUri(uri);
@@ -30,6 +73,32 @@ export default function Page() {
     setPaymentProcessUri(null);
   };
 
+  // This function is now called from PaymentProcessModal to show our new JS modal
+  const handleProcessPayment = (uri) => {
+    setShowPaymentProcessModal(false); // Close the first modal
+    setPaymentProcessUri(uri);
+    setPaymentResetKey(Date.now()); // Generate a new key to force re-initialization
+    setShowPaymentScreen(true); // Open the PaymentScreen modal
+  };
+
+  // This is passed to PaymentScreen and called on success
+  const handlePaymentSuccess = async (photoUri) => {
+    try {
+      const newUri = photoUri.replace('_processed.jpg', '_processed_paid.jpg');
+      await FileSystem.moveAsync({
+        from: photoUri,
+        to: newUri,
+      });
+      setShowPaymentScreen(false);
+      router.push({ pathname: '/share_print', params: { photoUri: newUri } });
+    } catch (error) {
+      console.error("Error renaming photo after payment:", error);
+      Alert.alert("Error", "Could not update photo status after payment.");
+      setShowPaymentScreen(false);
+    }
+  };
+
+
   const ensureDirExists = async () => {
     const dirInfo = await FileSystem.getInfoAsync(photosDir);
     if (!dirInfo.exists) {
@@ -37,21 +106,8 @@ export default function Page() {
     }
   };
 
-  if (!permission) {
-    // Camera permissions are still loading.
-    return <View />;
-  }
-
-  if (!permission.granted) {
-    // Camera permissions are not granted yet.
-    return (
-      <View style={styles.container}>
-        <Text style={{ textAlign: 'center', color: 'white' }}>We need your permission to show the camera</Text>
-        <TouchableOpacity style={styles.materialButton} onPress={requestPermission}>
-          <Text style={styles.materialButtonText}>Grant Permission</Text>
-        </TouchableOpacity>
-      </View>
-    );
+  if (!hasPermissions) {
+    return <PermissionsPage onPermissionsGranted={() => setHasPermissions(true)} />;
   }
 
   const takePhoto = async () => {
@@ -93,13 +149,27 @@ export default function Page() {
       to: dest,
     });
     setPhoto(undefined);
-    // handleShowPaymentProcess(dest); // Removed to prevent immediate modal display
+    router.replace({ pathname: '/', params: { tab: 'unprocessed' } });
+  };
+
+  const handlePhotoPress = () => {
+    if (photo && photo.uri) {
+      router.push({
+        pathname: '/adjust_photo',
+        params: {
+          photoUri: photo.uri,
+          photoBase64: photo.base64,
+        },
+      });
+    }
   };
 
   if (photo) {
     return (
       <View style={styles.container}>
+        <TouchableOpacity onPress={handlePhotoPress} style={{ flex: 1 }}>
         <Image style={styles.paymentProcess} source={{ uri: photo.uri || "data:image/jpg;base64," + photo.base64 }} />
+        </TouchableOpacity>
         <View style={styles.centeredButtonContainer}>
           <TouchableOpacity style={styles.materialButton} onPress={savePhoto}>
             <Text style={styles.materialButtonText}>Save</Text>
@@ -131,8 +201,15 @@ export default function Page() {
 
   return (
     <View style={styles.mainContainer}>
+      <Modal
+        visible={showHelperScreen}
+        animationType="slide"
+        onRequestClose={handleDismissHelper}
+      >
+        <HelperScreen onDismiss={handleDismissHelper} />
+      </Modal>
       <View style={styles.galleryContainer}>
-        <Gallery onPressProcessedPhoto={handleShowPaymentProcess} initialTab={tab} />
+        <Gallery initialTab={tab} onPhotoPress={handleProcessPayment} />
       </View>
       <View style={styles.mainButtonContainer}>
         <TouchableOpacity style={styles.materialButton} onPress={() => setShowCamera(true)}>
@@ -142,7 +219,29 @@ export default function Page() {
           <Text style={styles.materialButtonText}>Upload Photo</Text>
         </TouchableOpacity>
       </View>
-      <PaymentProcessModal isVisible={showPaymentProcessModal} onClose={handleClosePaymentProcess} uri={paymentProcessUri} photoCount={photoCount} />
+      
+      {/* This is the first modal, which leads to the payment screen */}
+      <PaymentProcessModal 
+        isVisible={showPaymentProcessModal} 
+        onClose={handleClosePaymentProcess} 
+        uri={paymentProcessUri} 
+        photoCount={photoCount} 
+        onProcessPayment={handleProcessPayment} // Changed prop name
+      />
+
+      {/* This is our new, reliable JS-based modal for the PaymentScreen */}
+      <Modal
+        visible={showPaymentScreen}
+        animationType="slide"
+        onRequestClose={() => setShowPaymentScreen(false)}
+      >
+        <PaymentScreen 
+          photoUri={paymentProcessUri}
+          onPurchaseSuccess={handlePaymentSuccess}
+          onGoBack={() => setShowPaymentScreen(false)}
+          resetKey={paymentResetKey}
+        />
+      </Modal>
     </View>
   );
 }
@@ -181,7 +280,6 @@ const styles = StyleSheet.create({
   mainButtonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    //paddingHorizontal: 20,
     marginBottom: 20,
     width: '100%',
     alignSelf: 'center',
@@ -189,14 +287,14 @@ const styles = StyleSheet.create({
   materialButton: {
     backgroundColor: '#198ff0ff',
     paddingVertical: 10,
-    paddingHorizontal: 10, // Reduced horizontal padding
+    paddingHorizontal: 10,
     borderRadius: 20,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    width: '40%', // Set width to 40%
+    width: '40%',
   },
   materialButtonText: {
     color: 'white',

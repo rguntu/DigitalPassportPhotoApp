@@ -3,14 +3,14 @@ import { Platform } from 'react-native';
 import * as InAppPurchases from 'expo-in-app-purchases';
 
 // --- IMPORTANT ---
-// Replace this with your actual Product ID from App Store Connect
+// Replace these with your actual Product IDs from App Store Connect and Google Play
 const productIds = Platform.select({
-  ios: ['com.rgapps.appname.6photos'],
-  android: [], // Add Android product IDs here if needed
+  ios: ['com.rgapps.appname.6photos'], // Replace with your iOS Product ID
+  android: ['com.rgapps.digitalpassportphoto.6photos'], // Replace with your Android Product ID
 });
 // ---
 
-export const useIAP = (onPurchaseSuccess) => {
+export const useIAP = (onPurchaseSuccess, resetKey) => {
   const [products, setProducts] = useState([]);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState(null);
@@ -22,21 +22,66 @@ export const useIAP = (onPurchaseSuccess) => {
 
   useEffect(() => {
     let isMounted = true;
+    let purchaseListener = null;
 
     const initializeIAP = async () => {
       try {
+        console.log('[IAP] Setting up purchase listener...');
+        purchaseListener = InAppPurchases.setPurchaseListener(async ({ responseCode, results, errorCode }) => {
+          console.log('[IAP] Purchase listener callback:', { responseCode, results, errorCode });
+          if (responseCode === InAppPurchases.IAPResponseCode.OK) {
+            for (const purchase of results) {
+              if (!purchase.acknowledged) {
+                try {
+                  console.log('[IAP] Purchase successful:', purchase);
+                  await InAppPurchases.finishTransactionAsync(purchase, true);
+                  if (onPurchaseSuccessRef.current) {
+                    onPurchaseSuccessRef.current(purchase);
+                  }
+                } catch (ackErr) {
+                  console.warn('[IAP] Failed to finish transaction:', ackErr);
+                }
+              }
+            }
+          } else if (responseCode === InAppPurchases.IAPResponseCode.USER_CANCELED) {
+            console.log('[IAP] User canceled the purchase.');
+          } else {
+            console.warn(`[IAP] Something went wrong with the purchase listener. Error code: ${errorCode}`);
+          }
+        });
+
+        console.log('[IAP] Connecting to the store...');
         await InAppPurchases.connectAsync();
+        
+        console.log('[IAP] Checking for unfinished transactions...');
+        const history = await InAppPurchases.getPurchaseHistoryAsync(true);
+        if (history.responseCode === InAppPurchases.IAPResponseCode.OK) {
+          for (const purchase of history.results) {
+            if (!purchase.acknowledged) {
+              console.log(`[IAP] Finishing unfinished transaction for ${purchase.productId}`);
+              await InAppPurchases.finishTransactionAsync(purchase, false);
+            }
+          }
+        }
+
         if (isMounted) {
             if (productIds?.length > 0) {
+                console.log('[IAP] Fetching products with IDs:', productIds);
                 const { responseCode, results } = await InAppPurchases.getProductsAsync(productIds);
+                console.log('[IAP] Get products response:', { responseCode, results });
                 if (responseCode === InAppPurchases.IAPResponseCode.OK) {
+                    console.log('[IAP] Products fetched successfully:', results);
                     setProducts(results);
+                } else {
+                    console.warn(`[IAP] Failed to fetch products with response code: ${responseCode}`);
                 }
             }
             setIsReady(true);
+            console.log('[IAP] Initialization successful.');
         }
       } catch (e) {
         if (isMounted) {
+            console.error('[IAP] Failed to initialize:', e);
             setError(`Failed to initialize IAP: ${e.message}`);
         }
       }
@@ -44,45 +89,29 @@ export const useIAP = (onPurchaseSuccess) => {
 
     initializeIAP();
 
-    const purchaseListener = InAppPurchases.setPurchaseListener(async ({ responseCode, results, errorCode }) => {
-      if (responseCode === InAppPurchases.IAPResponseCode.OK) {
-        for (const purchase of results) {
-          if (!purchase.acknowledged) {
-            try {
-              console.log('Purchase successful:', purchase);
-              await InAppPurchases.finishTransactionAsync(purchase, true);
-              if (onPurchaseSuccessRef.current) {
-                onPurchaseSuccessRef.current(purchase);
-              }
-            } catch (ackErr) {
-              console.warn('Failed to finish transaction:', ackErr);
-            }
-          }
-        }
-      } else if (responseCode === InAppPurchases.IAPResponseCode.USER_CANCELED) {
-        console.log('User canceled the purchase.');
-      } else {
-        console.warn(`Something went wrong with the purchase listener: ${errorCode}`);
-      }
-    });
-
     return () => {
       isMounted = false;
+      console.log('[IAP] Disconnecting from the store.');
       if (purchaseListener) {
         purchaseListener.remove();
       }
       InAppPurchases.disconnectAsync();
     };
-  }, []);
+  }, [resetKey]);
 
   const purchaseProduct = async (productId) => {
     if (!isReady) {
-      setError('IAP is not ready to make a purchase.');
+      const notReadyError = 'IAP is not ready to make a purchase.';
+      console.error(`[IAP] ${notReadyError}`);
+      setError(notReadyError);
       return;
     }
     try {
+      console.log(`[IAP] Calling purchaseItemAsync for product: ${productId}`);
       await InAppPurchases.purchaseItemAsync(productId);
+      console.log('[IAP] purchaseItemAsync call completed.');
     } catch (e) {
+      console.error('[IAP] An error was thrown during purchase:', JSON.stringify(e, null, 2));
       setError(`Purchase failed: ${e.message}`);
     }
   };

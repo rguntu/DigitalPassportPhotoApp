@@ -1,19 +1,18 @@
-import { StyleSheet, Text, View, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { StyleSheet, Text, View, ActivityIndicator, Alert } from 'react-native';
+import { RectButton, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useIAP } from './hooks/useIAP';
 import { useEffect } from 'react';
 
 const PRODUCT_ID_6_PHOTOS = 'com.rgapps.appname.6photos'; // Ensure this matches your product ID
 
-export default function PaymentScreen() {
-  const router = useRouter();
-  const { photoUri } = useLocalSearchParams();
+export default function PaymentScreen({ onPurchaseSuccess, photoUri, onGoBack, resetKey }) {
   const { products, isReady, purchaseProduct, error } = useIAP((purchase) => {
-    // Navigate to the 6 photo preview screen on successful purchase
     if (purchase.productId === PRODUCT_ID_6_PHOTOS) {
-      router.replace({ pathname: '/share_print', params: { photoUri } });
+      if (onPurchaseSuccess) {
+        onPurchaseSuccess(photoUri);
+      }
     }
-  });
+  }, resetKey);
   const product6Photos = products.find(p => p.productId === PRODUCT_ID_6_PHOTOS);
 
   useEffect(() => {
@@ -32,35 +31,36 @@ export default function PaymentScreen() {
       return;
     }
     await purchaseProduct(PRODUCT_ID_6_PHOTOS);
-    router.back();
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Process Payment</Text>
-      {photoUri && <Text style={styles.subtitle}>For photo: {photoUri.substring(photoUri.lastIndexOf('/') + 1)}</Text>}
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={styles.container}>
+        <Text style={styles.title}>Process Payment</Text>
+        {photoUri && <Text style={styles.subtitle}>For photo: {photoUri.substring(photoUri.lastIndexOf('/') + 1)}</Text>}
 
-      {!isReady && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#198ff0ff" />
-          <Text style={styles.loadingText}>Loading payment system...</Text>
-        </View>
-      )}
+        {!isReady && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#198ff0ff" />
+            <Text style={styles.loadingText}>Loading payment system...</Text>
+          </View>
+        )}
 
-      {isReady && product6Photos && (
-        <TouchableOpacity style={styles.materialButton} onPress={handlePurchase}>
-          <Text style={styles.materialButtonText}>Buy 6 Photos for {product6Photos.price}</Text>
-        </TouchableOpacity>
-      )}
+        {isReady && product6Photos && (
+          <RectButton style={styles.materialButton} onActiveStateChange={(active) => { if (active) handlePurchase() }}>
+            <Text style={styles.materialButtonText}>Buy 6 Photos for {product6Photos.price}</Text>
+          </RectButton>
+        )}
 
-      {isReady && !product6Photos && (
-        <Text style={styles.errorText}>Could not load product information. Please try again later.</Text>
-      )}
+        {isReady && !product6Photos && (
+          <Text style={styles.errorText}>Could not load product information. Please try again later.</Text>
+        )}
 
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Text style={styles.backButtonText}>Go Back</Text>
-      </TouchableOpacity>
-    </View>
+        <RectButton style={styles.backButton} onActiveStateChange={(active) => { if (active) onGoBack() }}>
+          <Text style={styles.backButtonText}>Go Back</Text>
+        </RectButton>
+      </View>
+    </GestureHandlerRootView>
   );
 }
 
@@ -76,11 +76,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
-    color: 'white',
+    color: '#333',
   },
   subtitle: {
     fontSize: 16,
-    color: 'white',
+    color: '#555',
     marginBottom: 30,
     textAlign: 'center',
   },
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginLeft: 10,
     fontSize: 16,
-    color: 'white',
+    color: '#333',
   },
   materialButton: {
     backgroundColor: '#198ff0ff',
@@ -106,6 +106,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     width: '80%',
     marginBottom: 20,
+    zIndex: 999,
   },
   materialButtonText: {
     color: 'white',
