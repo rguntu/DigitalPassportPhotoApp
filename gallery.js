@@ -152,9 +152,16 @@ export default function Gallery({ initialTab, onPhotoPress }) {
   const loadPhotos = async () => {
     await ensureDirExists();
     const files = await FileSystem.readDirectoryAsync(photosDir);
-    const allPhotos = files.map(file => photosDir + file).sort().reverse();
-    setUnprocessedPhotos(allPhotos.filter(file => !file.includes('_processed')));
-    setProcessedPhotos(allPhotos.filter(file => file.includes('_processed')));
+    const photoInfos = await Promise.all(files.map(async (file) => {
+      const uri = photosDir + file;
+      const fileInfo = await FileSystem.getInfoAsync(uri);
+      return { uri, modificationTime: fileInfo.modificationTime };
+    }));
+
+    const sortedPhotos = photoInfos.sort((a, b) => b.modificationTime - a.modificationTime).map(info => info.uri);
+
+    setUnprocessedPhotos(sortedPhotos.filter(file => !file.includes('_processed')));
+    setProcessedPhotos(sortedPhotos.filter(file => file.includes('_processed')));
   };
 
   useFocusEffect(

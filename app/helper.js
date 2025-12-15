@@ -1,12 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const HelperScreen = ({ onDismiss }) => {
+  console.log('HelperScreen is rendering.');
+  const insets = useSafeAreaInsets();
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <TouchableOpacity style={styles.closeButton} onPress={onDismiss}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <TouchableOpacity style={[styles.closeButton, { top: insets.top + 10 }]} onPress={onDismiss}>
           <MaterialCommunityIcons name="close-circle" size={32} color="#aaa" />
         </TouchableOpacity>
         
@@ -34,7 +37,7 @@ const HelperScreen = ({ onDismiss }) => {
             <MaterialCommunityIcons name="credit-card" size={32} color="#198ff0ff" />
             <View style={styles.stepTextContainer}>
               <Text style={styles.stepTitle}>3. Process Payment</Text>
-              <Text style={styles.stepText}>Complete the payment to remove the watermark.</Text>
+              <Text style={styles.stepText}>Complete payment for 6 photos.</Text>
             </View>
           </View>
 
@@ -66,6 +69,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 20,
     right: 20,
+    width: 50, // Increased touch area
+    height: 50, // Increased touch area
+    borderRadius: 25, // Make it circular
+    backgroundColor: 'rgba(0,0,0,0.1)', // For visual debugging
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1, // Ensure it's above other content
   },
   title: {
     fontSize: 28,

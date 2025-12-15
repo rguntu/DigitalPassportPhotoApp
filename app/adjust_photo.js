@@ -119,7 +119,8 @@ const AdjustPhotoPage = () => {
         // Otherwise, create a new processed file name.
         const originalFilename = photoUri.split('/').pop();
         const baseName = originalFilename.split('.')[0];
-        const filename = `${baseName}_processed.jpg`;
+        const randomNumber = Math.floor(Math.random() * 1000000); // Generate a random number
+        const filename = `${baseName}_processed_${randomNumber}.jpg`;
         dest = photosDir + filename;
       }
 
@@ -127,6 +128,8 @@ const AdjustPhotoPage = () => {
         from: finalPhoto.uri,
         to: dest,
       });
+
+
       
       router.replace({ pathname: '/', params: { tab: 'processed' } });
     } catch (error) {

@@ -36,6 +36,7 @@ export default function PaymentScreen({ onPurchaseSuccess, photoUri, onGoBack, r
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
+
         <Text style={styles.title}>Process Payment</Text>
         {photoUri && <Text style={styles.subtitle}>For photo: {photoUri.substring(photoUri.lastIndexOf('/') + 1)}</Text>}
 
@@ -48,7 +49,7 @@ export default function PaymentScreen({ onPurchaseSuccess, photoUri, onGoBack, r
 
         {isReady && product6Photos && (
           <RectButton style={styles.materialButton} onActiveStateChange={(active) => { if (active) handlePurchase() }}>
-            <Text style={styles.materialButtonText}>Buy 6 Photos for {product6Photos.price}</Text>
+            <Text style={styles.materialButtonText}>Buy 6 Photos for {product6Photos.price !== undefined && product6Photos.price !== null ? product6Photos.price : '---'}</Text>
           </RectButton>
         )}
 
@@ -72,6 +73,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+
   title: {
     fontSize: 24,
     fontWeight: 'bold',

@@ -1,7 +1,13 @@
 import { Stack, useRouter } from "expo-router";
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { TouchableOpacity, Text, View } from "react-native";
+import { GestureHandlerRootView, TouchableOpacity } from 'react-native-gesture-handler';
+import { Text, View } from "react-native";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import React, { createContext, useState, useContext } from 'react';
+
+const AppStateContext = createContext();
+
+export const useAppState = () => useContext(AppStateContext);
 
 const CustomBackButton = () => {
   const router = useRouter();
@@ -14,12 +20,20 @@ const CustomBackButton = () => {
 
 const HeaderTitle = () => {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { setShowHelp } = useAppState();
+
+  const handleHelpPress = () => {
+    setShowHelp(true);
+    router.push('/');
+  };
+
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-      <Text style={{ fontSize: 28, fontWeight: 'bold', color: 'white', flex: 1, marginRight: 10 }} adjustsFontSizeToFit numberOfLines={1}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: insets.right + 10 }}>
+      <Text style={{ fontSize: 28, fontWeight: 'bold', color: 'white', flex: 1, marginRight: 5 }} adjustsFontSizeToFit numberOfLines={1}>
         Digital Passport Photo
       </Text>
-      <TouchableOpacity onPress={() => router.push({ pathname: '/', params: { openHelper: true } })} style={{ padding: 5 }}>
+      <TouchableOpacity onPress={handleHelpPress} style={{ padding: 5 }}>
         <Ionicons name="help-circle-outline" size={32} color="white" />
       </TouchableOpacity>
     </View>
@@ -27,25 +41,30 @@ const HeaderTitle = () => {
 };
 
 export default function RootLayout() {
+  const [hasLaunched, setHasLaunched] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: '#198ff0ff' },
-          headerTintColor: 'white',
-          headerTitleStyle: { fontWeight: 'bold' },
-        }}
-      >
-        <Stack.Screen name="index" options={{ headerBackVisible: false, headerTitle: () => <HeaderTitle /> }} />
-        <Stack.Screen name="adjust_photo" options={{ title: "Adjust Photo", headerBackVisible: true }} />
-        <Stack.Screen 
-          name="share_print" 
-          options={{ 
-            title: "Share & Print", 
-            headerLeft: () => <CustomBackButton />,
-          }} 
-        />
-      </Stack>
-    </GestureHandlerRootView>
+    <AppStateContext.Provider value={{ hasLaunched, setHasLaunched, showHelp, setShowHelp }}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <Stack
+          screenOptions={{
+            headerStyle: { backgroundColor: '#198ff0ff' },
+            headerTintColor: 'white',
+            headerTitleStyle: { fontWeight: 'bold' },
+          }}
+        >
+          <Stack.Screen name="index" options={{ headerBackVisible: false, headerTitle: () => <HeaderTitle /> }} />
+          <Stack.Screen name="adjust_photo" options={{ title: "Adjust Photo", headerBackVisible: true }} />
+          <Stack.Screen 
+            name="share_print" 
+            options={{ 
+              title: "Share & Print", 
+              headerLeft: () => <CustomBackButton />,
+            }} 
+          />
+        </Stack>
+      </GestureHandlerRootView>
+    </AppStateContext.Provider>
   );
 }

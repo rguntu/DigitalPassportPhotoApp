@@ -11,6 +11,7 @@ import PaymentScreen from "./payment"; // Import the PaymentScreen
 import HelperScreen from './helper'; // Import the HelperScreen
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAppState } from './_layout';
 
 const photosDir = FileSystem.documentDirectory + 'photos/';
 
@@ -26,6 +27,8 @@ export default function Page() {
   const [photoCount, setPhotoCount] = useState(6);
   const cameraRef = useRef(null);
   const router = useRouter();
+  const { hasLaunched, setHasLaunched, showHelp, setShowHelp } = useAppState();
+
 
   useEffect(() => {
     const checkPermissions = async () => {
@@ -36,32 +39,22 @@ export default function Page() {
       }
     };
     checkPermissions();
-
-    const checkHelperScreen = async () => {
-      const value = await AsyncStorage.getItem('showHelperScreen');
-      if (value === null) {
-        setShowHelperScreen(true);
-      }
-    };
-    checkHelperScreen();
-  }, []);
-
-  const { tab = 'unprocessed', openHelper } = useLocalSearchParams();
-
-  useEffect(() => {
-    if (openHelper) {
+    if (showHelp || !hasLaunched) {
       setShowHelperScreen(true);
     }
-  }, [openHelper]);
+    
+  }, [hasLaunched, showHelp]);
+
+  const { tab = 'unprocessed' } = useLocalSearchParams();
   const handleOpenHelper = () => {
     setShowHelperScreen(true);
   };
 
-  const handleDismissHelper = async () => {
-    await AsyncStorage.setItem('showHelperScreen', 'false');
+  const handleDismissHelper = () => {
     setShowHelperScreen(false);
+    setHasLaunched(true);
+    setShowHelp(false);
   };
-
   const handleShowPaymentProcess = (uri, count = 6) => {
     setPaymentProcessUri(uri);
     setPhotoCount(count);
@@ -84,16 +77,51 @@ export default function Page() {
   // This is passed to PaymentScreen and called on success
   const handlePaymentSuccess = async (photoUri) => {
     try {
-      const newUri = photoUri.replace('_processed.jpg', '_processed_paid.jpg');
+      console.log('handlePaymentSuccess received photoUri:', photoUri);
+
+      await ensureDirExists(); // Ensure the directory exists
+      
+      const fileInfo = await FileSystem.getInfoAsync(photoUri);
+      console.log('Photo URI fileInfo:', fileInfo);
+
+      if (!fileInfo.exists) {
+        throw new Error(`Source photo does not exist at URI: ${photoUri}`);
+      }
+
+      // The photoUri already contains '_processed_RANDOMNUMBER.jpg'
+      // We need to change it to '_processed_RANDOMNUMBER_paid.jpg'
+
+      // Find the last occurrence of '.jpg' and insert '_paid' before it
+      const lastDotIndex = photoUri.lastIndexOf('.');
+      if (lastDotIndex === -1) {
+        throw new Error("Invalid photo URI format: No file extension found.");
+      }
+      const newUri = photoUri.substring(0, lastDotIndex) + '_paid' + photoUri.substring(lastDotIndex);
+      console.log('Attempting to move from:', photoUri, 'to:', newUri);
+
       await FileSystem.moveAsync({
         from: photoUri,
         to: newUri,
       });
       setShowPaymentScreen(false);
       router.push({ pathname: '/share_print', params: { photoUri: newUri } });
+      // Log photo names after successful payment
+      const files = await FileSystem.readDirectoryAsync(photosDir);
+      const unprocessedPhotos = [];
+      const processedPhotos = [];
+
+      for (const file of files) {
+        if (file.endsWith('_processed.jpg') || file.endsWith('_processed_paid.jpg')) {
+          processedPhotos.push(file);
+        } else if (file.endsWith('.jpg') || file.endsWith('.png')) { // Assuming photos are jpg or png
+          unprocessedPhotos.push(file);
+        }
+      }
+      console.log('Unprocessed Photos (after payment):', unprocessedPhotos);
+      console.log('Processed Photos (after payment):', processedPhotos);
     } catch (error) {
       console.error("Error renaming photo after payment:", error);
-      Alert.alert("Error", "Could not update photo status after payment.");
+      Alert.alert("Error", "Could not update photo status after payment. " + error.message);
       setShowPaymentScreen(false);
     }
   };
@@ -199,12 +227,14 @@ export default function Page() {
     );
   }
 
+  console.log('Rendering Page, showHelperScreen:', showHelperScreen);
   return (
     <View style={styles.mainContainer}>
       <Modal
         visible={showHelperScreen}
         animationType="slide"
         onRequestClose={handleDismissHelper}
+        transparent={false}
       >
         <HelperScreen onDismiss={handleDismissHelper} />
       </Modal>
