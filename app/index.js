@@ -9,7 +9,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import PermissionsPage from './permissions';
 import PaymentScreen from "./payment"; // Import the PaymentScreen
 import HelperScreen from './helper'; // Import the HelperScreen
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppState } from './_layout';
 
@@ -25,6 +25,7 @@ export default function Page() {
   const [paymentResetKey, setPaymentResetKey] = useState(0);
   const [paymentProcessUri, setPaymentProcessUri] = useState(null);
   const [photoCount, setPhotoCount] = useState(6);
+  const [cameraType, setCameraType] = useState('back');
   const cameraRef = useRef(null);
   const router = useRouter();
   const { hasLaunched, setHasLaunched, showHelp, setShowHelp } = useAppState();
@@ -41,9 +42,13 @@ export default function Page() {
     checkPermissions();
     if (showHelp || !hasLaunched) {
       setShowHelperScreen(true);
+      const timer = setTimeout(() => {
+        handleDismissHelper();
+      }, 6000); // Auto-dismiss after 6 seconds
+      return () => clearTimeout(timer); // Clear timeout on unmount
     }
     
-  }, [hasLaunched, showHelp]);
+  }, [hasLaunched, showHelp, tab]);
 
   const { tab = 'unprocessed' } = useLocalSearchParams();
   const handleOpenHelper = () => {
@@ -211,9 +216,19 @@ export default function Page() {
   }
 
   if (showCamera) {
+
+    function flipCamera() {
+      setCameraType(current => (current === 'back' ? 'front' : 'back'));
+    }
+
     return (
       <View style={styles.container}>
-        <CameraView style={styles.camera} ref={cameraRef}>
+        <CameraView style={styles.camera} ref={cameraRef} facing={cameraType}>
+          <View style={styles.flipButtonContainer}>
+            <TouchableOpacity style={styles.flipButton} onPress={flipCamera}>
+              <Ionicons name="camera-reverse-outline" size={30} color="white" />
+            </TouchableOpacity>
+          </View>
           <View style={styles.cameraButtonContainer}>
             <TouchableOpacity style={styles.materialButton} onPress={takePhoto}>
               <Text style={styles.materialButtonText}>Take Photo</Text>
@@ -307,6 +322,12 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     justifyContent: 'space-around',
   },
+  flipButtonContainer: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    zIndex: 1,
+  },
   mainButtonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -328,7 +349,7 @@ const styles = StyleSheet.create({
   },
   materialButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
     textAlign: 'center',
   },
@@ -343,6 +364,14 @@ const styles = StyleSheet.create({
     flex: 0.2,
     flexDirection: 'row',
     justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  flipButton: {
+    backgroundColor: 'transparent',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
     alignItems: 'center',
   },
 });

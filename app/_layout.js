@@ -33,7 +33,11 @@ const HeaderTitle = () => {
       <Text style={{ fontSize: 28, fontWeight: 'bold', color: 'white', flex: 1, marginRight: 5 }} adjustsFontSizeToFit numberOfLines={1}>
         Digital Passport Photo
       </Text>
-      <TouchableOpacity onPress={handleHelpPress} style={{ padding: 5 }}>
+      <TouchableOpacity 
+        onPress={handleHelpPress} 
+        style={{ padding: 10 }} 
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
         <Ionicons name="help-circle-outline" size={32} color="white" />
       </TouchableOpacity>
     </View>

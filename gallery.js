@@ -378,6 +378,6 @@ const styles = StyleSheet.create({
   processedButtonText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 12,
+    fontSize: 8,
   },
 });
