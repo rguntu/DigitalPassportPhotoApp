@@ -48,20 +48,23 @@ const AdjustPhotoPage = () => {
         );
 
         setPhotoWithWhiteBg(whiteBgPhoto.uri);
-        Image.getSize(whiteBgPhoto.uri, (width, height) => {
-          setImageSize({ width, height });
+          Image.getSize(whiteBgPhoto.uri, (width, height) => {
+            setImageSize({ width, height });
 
-          // Calculate initial scale to "cover" the container
-          const requirements = getPassportRequirements(country);
-          const { outputWidthPx, outputHeightPx } = requirements;
-          const containerAspectRatio = outputWidthPx / outputHeightPx;
-          const containerWidth = screenWidth * 0.9;
-          const containerHeight = containerWidth / containerAspectRatio;
-          const initialScale = Math.max(containerWidth / width, containerHeight / height);
+            // Calculate initial scale to "cover" the container
+            const requirements = getPassportRequirements(country);
+            const { outputWidthPx, outputHeightPx } = requirements;
+            const containerAspectRatio = outputWidthPx / outputHeightPx;
+            const containerWidth = screenWidth * 0.9;
+            const containerHeight = containerWidth / containerAspectRatio;
+            const initialScale = Math.max(containerWidth / width, containerHeight / height);
 
-          scale.value = initialScale;
-          savedScale.value = initialScale;
-        });
+            scale.value = initialScale;
+            savedScale.value = initialScale;
+          }, (error) => {
+          console.log('[Image.getSize Error in Adjust Photo]:', error.message);
+          setIsLoading(false); // Ensure loading state is cleared on error
+          });
 
       } catch (e) {
         console.error("Error processing background:", e);
@@ -120,7 +123,7 @@ const AdjustPhotoPage = () => {
         const originalFilename = photoUri.split('/').pop();
         const baseName = originalFilename.split('.')[0];
         const randomNumber = Math.floor(Math.random() * 1000000); // Generate a random number
-        const filename = `${baseName}_processed_${randomNumber}.jpg`;
+        const filename = `${baseName}_${country}_processed_${randomNumber}.jpg`;
         dest = photosDir + filename;
       }
 

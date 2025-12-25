@@ -108,8 +108,18 @@ export default function Page() {
         from: photoUri,
         to: newUri,
       });
+
+      // Verify the new URI exists before navigating
+      const newFileInfo = await FileSystem.getInfoAsync(newUri);
+      if (!newFileInfo.exists) {
+        throw new Error(`Renamed photo does not exist at URI: ${newUri}`);
+      }
+      console.log('Renamed photo fileInfo:', newFileInfo);
+      
       setShowPaymentScreen(false);
-      router.push({ pathname: '/share_print', params: { photoUri: newUri } });
+      const countryMatch = newUri.match(/_([A-Z]{2})_processed/);
+      const countryCode = countryMatch ? countryMatch[1] : 'US'; // Default to US if not found
+      router.push({ pathname: '/share_print', params: { photoUri: newUri, country: countryCode } });
       // Log photo names after successful payment
       const files = await FileSystem.readDirectoryAsync(photosDir);
       const unprocessedPhotos = [];

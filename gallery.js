@@ -22,6 +22,20 @@ const GalleryPhoto = ({ item, highlightedPhotoUri, deletePhoto, onPhotoPress }) 
   const [selectedCountry, setSelectedCountry] = useState('');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
 
+  const extractCountryFromProcessedUri = (uri) => {
+    const match = uri.match(/_([A-Z]{2})_processed/);
+    return match ? match[1] : 'US';
+  };
+
+  let photoStyle = styles.photo;
+  if (isProcessed) {
+    const countryCode = extractCountryFromProcessedUri(item);
+    const requirements = getPassportRequirements(countryCode);
+    if (requirements) {
+      photoStyle = [styles.photo, { aspectRatio: requirements.outputWidthPx / requirements.outputHeightPx }];
+    }
+  }
+
   const selectCountry = (countryValue) => {
     setSelectedCountry(countryValue);
     setShowCountryPicker(false);
@@ -34,11 +48,12 @@ const GalleryPhoto = ({ item, highlightedPhotoUri, deletePhoto, onPhotoPress }) 
     if (isProcessed) {
       // Re-edit: go to adjustment screen with the original photo
       const originalUri = item.replace(/_processed(_paid)?\.jpg$/, '.jpg');
+      const countryCode = extractCountryFromProcessedUri(item);
       router.push({
         pathname: '/adjust_photo',
         params: {
           photoUri: originalUri,
-          country: 'US',
+          country: countryCode,
           isReEdit: 'true',
           processedUri: item
         }
@@ -53,7 +68,7 @@ const GalleryPhoto = ({ item, highlightedPhotoUri, deletePhoto, onPhotoPress }) 
   const handleSixPhotoButtonPress = () => {
     if (isPaid) {
       // Already paid: go directly to share/print for 6 photos
-      router.push({ pathname: '/share_print', params: { photoUri: item, photoCount: 6 } });
+      router.push({ pathname: '/share_print', params: { photoUri: item, photoCount: 6, country: extractCountryFromProcessedUri(item) } });
     } else if (isProcessed && !isPaid) {
       // Processed but unpaid: trigger the payment flow
       if (onPhotoPress) {
@@ -67,7 +82,7 @@ const GalleryPhoto = ({ item, highlightedPhotoUri, deletePhoto, onPhotoPress }) 
       <View style={[styles.photoContainer, item === highlightedPhotoUri && styles.highlightedPhoto]}>
         <TouchableOpacity onPress={handleImagePress}>
           <Image
-            style={styles.photo}
+            style={photoStyle}
             source={{ uri: item }}
             onError={(e) => {
               // Image loading errors are not critical to app function, so no need to log.
@@ -119,7 +134,7 @@ const GalleryPhoto = ({ item, highlightedPhotoUri, deletePhoto, onPhotoPress }) 
         <View style={styles.processedButtonsContainer}>
           <TouchableOpacity
             style={styles.processedButton}
-            onPress={() => router.push({ pathname: '/share_print', params: { photoUri: item, photoCount: 2 } })}
+            onPress={() => router.push({ pathname: '/share_print', params: { photoUri: item, photoCount: 2, country: extractCountryFromProcessedUri(item) } })}
           >
             <Text style={styles.processedButtonText}>2 Photos</Text>
           </TouchableOpacity>
@@ -294,13 +309,12 @@ const styles = StyleSheet.create({
   },
   photoContainer: {
     width: '100%',
-    aspectRatio: 1,
     position: 'relative',
     marginBottom: 0, // Ensure no gap between photo and country selector
   },
   photo: {
     width: '100%',
-    height: '100%',
+    aspectRatio: 1, // Default aspect ratio
   },
   deleteButton: {
     position: 'absolute',
