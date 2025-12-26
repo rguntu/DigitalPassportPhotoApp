@@ -93,14 +93,40 @@ const AdjustPhotoPage = () => {
         throw new Error("Image dimensions are not yet available.");
       }
       
-      // 3. Calculate the ratio of original image pixels to final displayed pixels (including user zoom)
-      const ratio = imageSize.width / (imageSize.width * scale.value);
+      const initialScale = Math.max(containerWidth / imageSize.width, containerHeight / imageSize.height);
+      const finalScale = Math.max(scale.value, initialScale);
 
-      // 4. Calculate the crop rectangle in original image coordinates.
-      const cropWidth = containerWidth * ratio;
-      const cropHeight = containerHeight * ratio;
-      const originX = (imageSize.width / 2) - (cropWidth / 2) - (translateX.value * ratio);
-      const originY = (imageSize.height / 2) - (cropHeight / 2) - (translateY.value * ratio);
+      const scaledWidth = imageSize.width * finalScale;
+      const scaledHeight = imageSize.height * finalScale;
+
+      const maxTranslateX = (scaledWidth - containerWidth) / 2;
+      const maxTranslateY = (scaledHeight - containerHeight) / 2;
+
+      const finalTranslateX = Math.max(-maxTranslateX, Math.min(translateX.value, maxTranslateX));
+      const finalTranslateY = Math.max(-maxTranslateY, Math.min(translateY.value, maxTranslateY));
+      
+      const ratio = 1 / finalScale;
+
+      let originX = (imageSize.width / 2) - (containerWidth / 2) * ratio - finalTranslateX * ratio;
+      let originY = (imageSize.height / 2) - (containerHeight / 2) * ratio - finalTranslateY * ratio;
+      let cropWidth = containerWidth * ratio;
+      let cropHeight = containerHeight * ratio;
+
+      originX = Math.max(0, Math.round(originX));
+      originY = Math.max(0, Math.round(originY));
+      
+      const roundedImageWidth = Math.round(imageSize.width);
+      const roundedImageHeight = Math.round(imageSize.height);
+
+      cropWidth = Math.round(cropWidth);
+      cropHeight = Math.round(cropHeight);
+
+      if (originX + cropWidth > roundedImageWidth) {
+        cropWidth = roundedImageWidth - originX;
+      }
+      if (originY + cropHeight > roundedImageHeight) {
+        cropHeight = roundedImageHeight - originY;
+      }
       
       const croppedPhoto = await ImageManipulator.manipulateAsync(
         photoWithWhiteBg,

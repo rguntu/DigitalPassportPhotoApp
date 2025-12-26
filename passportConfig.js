@@ -26,7 +26,7 @@ export const passportConfigs = {
     headHeightMaxPx: 1020, 
     eyeHeightFromBottomMinPx: 0, // UK spec does not define eye height, but head position.
     eyeHeightFromBottomMaxPx: 0, // This should be handled by the oval guide placement.
-    background: "light grey",
+    background: "white",
   },
   CA: {
     countryCode: "CA",
