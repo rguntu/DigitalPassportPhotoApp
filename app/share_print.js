@@ -72,7 +72,8 @@ export default function SixPhotoPreviewScreen() {
       return;
     }
     try {
-      await Sharing.shareAsync(photoUri, { mimeType: 'image/jpeg', UTI: 'public.jpeg' });
+      const uri = await viewShotRef.current.capture();
+      await Sharing.shareAsync(uri, { mimeType: 'image/png', UTI: 'public.png' });
     } catch (error) {
         Alert.alert("Sharing Error", "Could not share the photo. Please try again later.");
         console.error("Sharing error:", error);
@@ -83,18 +84,7 @@ export default function SixPhotoPreviewScreen() {
   const previewPhotoHeight = previewPhotoWidth * (outputHeightPx / outputWidthPx);
 
   const dynamicStyles = StyleSheet.create({
-    photoContainer: { // This container is for the ViewShot, it needs to match the printSheet dimensions
-        width: printSheetWidth,
-        height: printSheetHeight,
-        backgroundColor: 'white',
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-    },
-    gridPhotoContainer: {
-        width: printSheetWidth / 2, // Half the sheet width for two columns
-        height: printSheetHeight / 3, // Third of the sheet height for three rows
-        boxSizing: 'border-box',
-    },
+  
     previewContainer: {
         width: '90%',
         aspectRatio: printSheetWidth / printSheetHeight, // Maintain the aspect ratio of the full sheet
@@ -124,33 +114,21 @@ export default function SixPhotoPreviewScreen() {
 
   return (
     <View style={styles.container}>
-      <ViewShot
-        ref={viewShotRef}
-        options={{ width: printSheetWidth, height: printSheetHeight, format: 'png', quality: 0.9 }}
-        style={{ position: 'absolute', top: -9999, left: -9999 }}
-      >
-        <View style={dynamicStyles.photoContainer}>
-          {[...Array(6)].map((_, i) => (
-            <View key={i} style={[dynamicStyles.gridPhotoContainer, i < actualPhotoCount && styles.gridItemBorder]}>
-              {i < actualPhotoCount && photoUri && (
-                <Image style={dynamicStyles.photo} source={{ uri: photoUri }} />
-              )}
-            </View>
-          ))}
-        </View>
-      </ViewShot>
+
 
       <Text style={styles.title}>Your Photos are Ready!</Text>
 
-      <View style={dynamicStyles.previewContainer}>
-        {[...Array(6)].map((_, i) => (
-            <View key={i} style={[dynamicStyles.previewGridItem, i < actualPhotoCount && styles.gridItemBorder]}>
-              {i < actualPhotoCount && photoUri && (
-                  <Image style={dynamicStyles.photo} source={{ uri: photoUri }} />
-              )}
-            </View>
-        ))}
-      </View>
+      <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 0.9 }}>
+        <View style={dynamicStyles.previewContainer}>
+          {[...Array(6)].map((_, i) => (
+              <View key={i} style={[dynamicStyles.previewGridItem, i < actualPhotoCount && styles.gridItemBorder]}>
+                {i < actualPhotoCount && photoUri && (
+                    <Image style={dynamicStyles.photo} source={{ uri: photoUri }} />
+                )}
+              </View>
+          ))}
+        </View>
+      </ViewShot>
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.materialButton} onPress={handlePrint}>
@@ -159,7 +137,7 @@ export default function SixPhotoPreviewScreen() {
         </TouchableOpacity>
         <TouchableOpacity style={styles.materialButton} onPress={handleShare}>
           <MaterialIcons name="share" size={24} color="white" />
-          <Text style={styles.materialButtonText}>Share Photo</Text>
+          <Text style={styles.materialButtonText}>Share Sheet</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -207,4 +185,5 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderWidth: 1,
   },
+
 });

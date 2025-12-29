@@ -3,7 +3,7 @@
     "name": "Digital Passport Photo",
     "slug": "digital-passport-photo-app",
     "scheme": "com.rgapps.digitalpassportphoto",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "sdkVersion": "51.0.0",
     "platforms": [
       "ios",
@@ -18,7 +18,7 @@
     "ios": {
       "bundleIdentifier": "com.rgapps.digitalpassportphoto",
       "buildNumber": "1.0.0",
-      "supportsTablet": true,
+      "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
