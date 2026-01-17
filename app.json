@@ -1,23 +1,37 @@
 {
   "expo": {
-    "name": "Digital Passport Photo",
-    "slug": "digital-passport-photo-app",
+    "name": "ID Photo",
+    "slug": "idphoto-app",
+    "description": "The best Passport Photo and ID Photo maker. Create, edit, and print official biometric photos for Passports, Visas, and ID cards with background removal. Supports US, UK, and international standards.",
+    "keywords": [
+      "passport photo",
+      "id photo",
+      "visa photo",
+      "passport photo maker",
+      "biometric photo",
+      "id card",
+      "passport size photo",
+      "digital passport photo",
+      "photo booth",
+      "background remover",
+      "print photos"
+    ],
     "scheme": "com.rgapps.digitalpassportphoto",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "sdkVersion": "51.0.0",
     "platforms": [
       "ios",
       "android"
     ],
-    "icon": "./assets/icon.png",
+    "icon": "./assets/pp.png",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/pp.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#1d9bf0"
     },
     "ios": {
       "bundleIdentifier": "com.rgapps.digitalpassportphoto",
-      "buildNumber": "1.0.2",
+      "buildNumber": "1.0.3",
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -28,23 +42,20 @@
     },
     "android": {
       "package": "com.rgapps.digitalpassportphoto",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon1.png",
-        "backgroundColor": "#ffffff"
-      }
-    },
-    "extra": {
-      "eas": {
-        "projectId": "2e5149e2-87ae-4619-9cb4-b9ff4f3a672b"
+        "foregroundImage": "./assets/pp.png",
+        "backgroundColor": "#1d9bf0"
       }
     },
     "owner": "rguntu",
     "runtimeVersion": {
       "policy": "appVersion"
     },
-    "updates": {
-      "url": "https://u.expo.dev/2e5149e2-87ae-4619-9cb4-b9ff4f3a672b"
+    "extra": {
+      "eas": {
+        "projectId": "a4a50b67-0749-449b-9a01-734a8512e6a4"
+      }
     }
   }
 }

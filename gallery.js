@@ -1,6 +1,6 @@
-import { StyleSheet, Text, View, FlatList, Image, ActivityIndicator, Alert, TouchableOpacity, Modal } from 'react-native';
+import { StyleSheet, Text, View, FlatList, Image, ActivityIndicator, Alert, TouchableOpacity, Modal, Animated } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import * as FileSystem from 'expo-file-system';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -43,10 +43,8 @@ const GalleryPhoto = ({ item, highlightedPhotoUri, deletePhoto, onPhotoPress }) 
     router.push({ pathname: '/adjust_photo', params: { photoUri: originalUri, country: countryValue } });
   };
 
-  // Action for tapping the image itself
   const handleImagePress = () => {
     if (isProcessed) {
-      // Re-edit: go to adjustment screen with the original photo
       const originalUri = item.replace(/_processed(_paid)?\.jpg$/, '.jpg');
       const countryCode = extractCountryFromProcessedUri(item);
       router.push({
@@ -59,18 +57,14 @@ const GalleryPhoto = ({ item, highlightedPhotoUri, deletePhoto, onPhotoPress }) 
         }
       });
     } else {
-      // New photo: show country picker to start editing
       setShowCountryPicker(true);
     }
   };
 
-  // Action for tapping the "6 Photos" button
   const handleSixPhotoButtonPress = () => {
     if (isPaid) {
-      // Already paid: go directly to share/print for 6 photos
       router.push({ pathname: '/share_print', params: { photoUri: item, photoCount: 6, country: extractCountryFromProcessedUri(item) } });
     } else if (isProcessed && !isPaid) {
-      // Processed but unpaid: trigger the payment flow
       if (onPhotoPress) {
         onPhotoPress(item, 6);
       }
@@ -84,9 +78,6 @@ const GalleryPhoto = ({ item, highlightedPhotoUri, deletePhoto, onPhotoPress }) 
           <Image
             style={photoStyle}
             source={{ uri: item }}
-            onError={(e) => {
-              // Image loading errors are not critical to app function, so no need to log.
-            }}
           />
         </TouchableOpacity>
         <TouchableOpacity style={styles.deleteButton} onPress={() => deletePhoto(item)}>
@@ -94,41 +85,12 @@ const GalleryPhoto = ({ item, highlightedPhotoUri, deletePhoto, onPhotoPress }) 
         </TouchableOpacity>
       </View>
       {!isProcessed && (
-        <>
-          <TouchableOpacity onPress={() => setShowCountryPicker(true)} style={styles.countrySelectorButton}>
-            <Text style={styles.countrySelectorButtonText}>
-              {selectedCountry || 'Select Country'}
-            </Text>
-            <MaterialIcons name="arrow-drop-down" size={24} color="black" />
-          </TouchableOpacity>
-
-          <Modal
-            transparent={true}
-            visible={showCountryPicker}
-            onRequestClose={() => setShowCountryPicker(false)}
-          >
-            <TouchableOpacity
-              style={styles.modalOverlay}
-              activeOpacity={1}
-              onPressOut={() => setShowCountryPicker(false)}
-            >
-              <View style={styles.modalContainer}>
-                <FlatList
-                  data={countries}
-                  keyExtractor={(item) => item.value}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      style={styles.countryItem}
-                      onPress={() => selectCountry(item.value)}
-                    >
-                      <Text style={styles.countryItemText}>{item.label}</Text>
-                    </TouchableOpacity>
-                  )}
-                />
-              </View>
-            </TouchableOpacity>
-          </Modal>
-        </>
+        <TouchableOpacity onPress={() => setShowCountryPicker(true)} style={styles.countrySelectorButton}>
+          <Text style={styles.countrySelectorButtonText}>
+            {selectedCountry || 'Select Country'}
+          </Text>
+          <MaterialIcons name="arrow-drop-down" size={24} color="white" />
+        </TouchableOpacity>
       )}
       {isProcessed && (
         <View style={styles.processedButtonsContainer}>
@@ -146,6 +108,33 @@ const GalleryPhoto = ({ item, highlightedPhotoUri, deletePhoto, onPhotoPress }) 
           </TouchableOpacity>
         </View>
       )}
+
+      <Modal
+        transparent={true}
+        visible={showCountryPicker}
+        onRequestClose={() => setShowCountryPicker(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPressOut={() => setShowCountryPicker(false)}
+        >
+          <View style={styles.modalContainer}>
+            <FlatList
+              data={countries}
+              keyExtractor={(item) => item.value}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.countryItem}
+                  onPress={() => selectCountry(item.value)}
+                >
+                  <Text style={styles.countryItemText}>{item.label}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -155,86 +144,66 @@ export default function Gallery({ initialTab, onPhotoPress }) {
   const [processedPhotos, setProcessedPhotos] = useState([]);
   const [activeTab, setActiveTab] = useState(initialTab || 'unprocessed');
   const [highlightedPhotoUri, setHighlightedPhotoUri] = useState(null);
-  const router = useRouter();
+  const [containerWidth, setContainerWidth] = useState(0);
+  const scrollValue = useRef(new Animated.Value(initialTab === 'processed' ? 1 : 0)).current;
 
-  const ensureDirExists = async () => {
-    const dirInfo = await FileSystem.getInfoAsync(photosDir);
-    if (!dirInfo.exists) {
-      await FileSystem.makeDirectoryAsync(photosDir, { intermediates: true });
-    }
-  };
+  useEffect(() => {
+    Animated.spring(scrollValue, {
+      toValue: activeTab === 'unprocessed' ? 0 : 1,
+      useNativeDriver: true,
+      bounciness: 4,
+    }).start();
+  }, [activeTab]);
+
+  const sliderWidth = (containerWidth - 8) / 2;
+  const translateX = scrollValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, sliderWidth],
+  });
 
   const loadPhotos = async () => {
-    await ensureDirExists();
     const files = await FileSystem.readDirectoryAsync(photosDir);
     const photoInfos = await Promise.all(files.map(async (file) => {
       const uri = photosDir + file;
       const fileInfo = await FileSystem.getInfoAsync(uri);
       return { uri, modificationTime: fileInfo.modificationTime };
     }));
-
     const sortedPhotos = photoInfos.sort((a, b) => b.modificationTime - a.modificationTime).map(info => info.uri);
-
     setUnprocessedPhotos(sortedPhotos.filter(file => !file.includes('_processed')));
     setProcessedPhotos(sortedPhotos.filter(file => file.includes('_processed')));
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      loadPhotos();
-    }, [])
-  );
-
-  useEffect(() => {
-    setActiveTab(initialTab || 'unprocessed');
-  }, [initialTab]);
-
-  useEffect(() => {
-    if (highlightedPhotoUri) {
-      const timer = setTimeout(() => {
-        setHighlightedPhotoUri(null);
-      }, 3000); // Highlight for 3 seconds
-      return () => clearTimeout(timer);
-    }
-  }, [highlightedPhotoUri, activeTab]);
-
-  const deletePhoto = async (uri) => {
-    Alert.alert(
-      "Delete Photo",
-      "Are you sure you want to delete this photo?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            await FileSystem.deleteAsync(uri);
-            loadPhotos();
-          },
-        },
-      ]
-    );
-  };
-
-  const renderPhoto = ({ item }) => {
-    return (
-      <GalleryPhoto
-        item={item}
-        highlightedPhotoUri={highlightedPhotoUri}
-        deletePhoto={deletePhoto}
-        onPhotoPress={onPhotoPress}
-      />
-    );
-  };
+  useFocusEffect(useCallback(() => { loadPhotos(); }, []));
+  useEffect(() => { setActiveTab(initialTab || 'unprocessed'); }, [initialTab]);
 
   return (
     <View style={styles.container}>
-      <View style={styles.tabContainer}>
-        <TouchableOpacity onPress={() => setActiveTab('unprocessed')} style={[styles.tab, activeTab === 'unprocessed' && styles.activeTab]}>
-          <Text style={styles.tabText}>Unprocessed</Text>
+      <View 
+        style={styles.tabContainer}
+        onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+      >
+        {containerWidth > 0 && (
+          <Animated.View
+            style={[
+              styles.slider,
+              {
+                width: sliderWidth,
+                transform: [{ translateX }],
+              },
+            ]}
+          />
+        )}
+        <TouchableOpacity 
+          onPress={() => setActiveTab('unprocessed')} 
+          style={styles.tab}
+        >
+          <Text style={[styles.tabText, activeTab === 'unprocessed' && styles.activeTabText]}>Gallery</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => setActiveTab('processed')} style={[styles.tab, activeTab === 'processed' && styles.activeTab]}>
-          <Text style={styles.tabText}>Processed</Text>
+        <TouchableOpacity 
+          onPress={() => setActiveTab('processed')} 
+          style={styles.tab}
+        >
+          <Text style={[styles.tabText, activeTab === 'processed' && styles.activeTabText]}>ID Photos</Text>
         </TouchableOpacity>
       </View>
 
@@ -243,28 +212,24 @@ export default function Gallery({ initialTab, onPhotoPress }) {
         data={activeTab === 'unprocessed' ? unprocessedPhotos : processedPhotos}
         keyExtractor={(item) => item}
         numColumns={2}
-        renderItem={renderPhoto}
-        style={{ marginTop: 0 }}
-        ListEmptyComponent={<EmptyGallery tab={activeTab} />}
+        renderItem={({ item }) => (
+          <GalleryPhoto item={item} highlightedPhotoUri={highlightedPhotoUri} deletePhoto={async (uri) => {
+            Alert.alert("Delete", "Delete this photo?", [
+              { text: "Cancel", style: "cancel" },
+              { text: "Delete", style: "destructive", onPress: async () => { await FileSystem.deleteAsync(uri); loadPhotos(); } }
+            ]);
+          }} onPhotoPress={onPhotoPress} />
+        )}
+        ListEmptyComponent={<View style={styles.emptyContainer}><Text style={styles.emptyText}>{activeTab === 'unprocessed' ? "Your gallery is empty." : "No ID photos yet."}</Text></View>}
       />
     </View>
   );
 }
 
-const EmptyGallery = ({ tab }) => (
-  <View style={styles.emptyContainer}>
-    <Text style={styles.emptyText}>
-      {tab === 'unprocessed'
-        ? "You have no photos to process. Use the camera buttons below to get started!"
-        : "You have no processed photos yet."}
-    </Text>
-  </View>
-);
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#d6e5f1ff',
+    backgroundColor: '#F0F5F9',
     width: '100%',
   },
   emptyContainer: {
@@ -276,32 +241,42 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#66778c',
+    color: '#536471',
     textAlign: 'center',
   },
   tabContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 0,
-    backgroundColor: 'transparent',
-    width: '96%', // Match approximate width of photo grid
-    alignSelf: 'center', // Center the tab container
-    marginTop: 10, // Add a small top margin for separation from the top of the screen
+    backgroundColor: '#E1E8ED',
+    padding: 4,
+    width: '100%',
+    position: 'relative',
   },
   tab: {
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    width: '48%', // Distribute width evenly for two tabs
+    flex: 1,
+    paddingVertical: 12,
     alignItems: 'center',
+    zIndex: 1,
   },
-  activeTab: {
-    backgroundColor: '#198ff0ff',
+  slider: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    bottom: 4,
+    backgroundColor: 'white',
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: 'bold',
-    color: 'white',
+    color: '#536471',
+  },
+  activeTabText: {
+    color: '#1d9bf0',
   },
   cellContainer: {
     width: '45%',
@@ -310,88 +285,85 @@ const styles = StyleSheet.create({
   photoContainer: {
     width: '100%',
     position: 'relative',
-    marginBottom: 0, // Ensure no gap between photo and country selector
   },
   photo: {
     width: '100%',
-    aspectRatio: 1, // Default aspect ratio
+    aspectRatio: 1,
+    borderRadius: 8,
   },
   deleteButton: {
     position: 'absolute',
     top: 5,
     right: 5,
-    backgroundColor: 'rgba(102, 119, 140, 0.7)', // Lighter blue with some transparency
-    borderRadius: 20,
-    width: 30,
-    height: 30,
+    backgroundColor: 'rgba(15, 20, 25, 0.7)',
+    borderRadius: 15,
+    width: 24,
+    height: 24,
     justifyContent: 'center',
     alignItems: 'center',
   },
   deleteButtonText: {
     color: 'white',
+    fontSize: 14,
     fontWeight: 'bold',
-    fontSize: 18,
-  },
-  highlightedPhoto: {
-    borderWidth: 3,
-    borderColor: 'white',
   },
   countrySelectorButton: {
-    backgroundColor: '#198ff0ff',
-    paddingVertical: 2,
-    paddingHorizontal: 4,
+    backgroundColor: '#1d9bf0',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
     borderRadius: 20,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 0, // Ensure no gap
+    marginTop: 8,
   },
   countrySelectorButtonText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 14, // Reduced font size
+    fontSize: 12,
   },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
   modalContainer: {
     backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 10,
-    width: '80%',
-    maxHeight: '50%',
+    borderRadius: 16,
+    padding: 16,
+    width: '70%',
+    maxHeight: '40%',
+    elevation: 5,
   },
   countryItem: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    padding: 12,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#eff3f4',
   },
   countryItemText: {
     fontSize: 16,
-    color: 'black',
+    color: '#0f1419',
+    textAlign: 'center',
   },
   processedButtonsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 5,
+    marginTop: 8,
   },
   processedButton: {
-    backgroundColor: '#198ff0ff',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 20,
+    backgroundColor: '#1d9bf0',
+    paddingVertical: 6,
+    borderRadius: 15,
     width: '48%',
     alignItems: 'center',
   },
   paidButton: {
-    backgroundColor: '#4CAF50', // A green color to indicate success
+    backgroundColor: '#00ba7c',
   },
   processedButtonText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 8,
+    fontSize: 10,
   },
 });

@@ -28,36 +28,6 @@ export const passportConfigs = {
     eyeHeightFromBottomMaxPx: 0, // This should be handled by the oval guide placement.
     background: "white",
   },
-  CA: {
-    countryCode: "CA",
-    outputWidthPx: 700, // 50mm x 70mm at approx 254 DPI
-    outputHeightPx: 980,
-    headHeightMinPx: 420, // 31mm at 254 DPI
-    headHeightMaxPx: 480, // 36mm at 254 DPI
-    eyeHeightFromBottomMinPx: 588, // 36mm from bottom at 254 DPI
-    eyeHeightFromBottomMaxPx: 648, // 41mm from bottom at 254 DPI
-    background: "white",
-  },
-  AU: {
-    countryCode: "AU",
-    outputWidthPx: 700, // 35mm x 45mm at approx 500 DPI
-    outputHeightPx: 900,
-    headHeightMinPx: 520, // 32mm at 500 DPI
-    headHeightMaxPx: 600, // 36mm at 500 DPI
-    eyeHeightFromBottomMinPx: 450, // 25mm from bottom at 500 DPI
-    eyeHeightFromBottomMaxPx: 550, // 30mm from bottom at 500 DPI
-    background: "white",
-  },
-  DE: {
-    countryCode: "DE",
-    outputWidthPx: 700, // 35mm x 45mm at approx 500 DPI
-    outputHeightPx: 900,
-    headHeightMinPx: 600, // 32mm at 500 DPI
-    headHeightMaxPx: 700, // 36mm at 500 DPI
-    eyeHeightFromBottomMinPx: 450, // 25mm from bottom at 500 DPI
-    eyeHeightFromBottomMaxPx: 550, // 30mm from bottom at 500 DPI
-    background: "white",
-  },
 };
 
 export const getPassportRequirements = (countryCode) => {

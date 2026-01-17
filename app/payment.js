@@ -1,9 +1,9 @@
-import { StyleSheet, Text, View, ActivityIndicator, Alert } from 'react-native';
-import { RectButton, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { StyleSheet, Text, View, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useIAP } from './hooks/useIAP';
 import { useEffect } from 'react';
 
-const PRODUCT_ID_6_PHOTOS = 'com.rgapps.appname.6photos'; // Ensure this matches your product ID
+const PRODUCT_ID_6_PHOTOS = 'com.rgapps.appname.6photos'; 
 
 export default function PaymentScreen({ onPurchaseSuccess, photoUri, onGoBack, resetKey }) {
   const { products, isReady, purchaseProduct, error } = useIAP((purchase) => {
@@ -36,30 +36,35 @@ export default function PaymentScreen({ onPurchaseSuccess, photoUri, onGoBack, r
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={styles.container}>
-
-        <Text style={styles.title}>Process Payment</Text>
-        {photoUri && <Text style={styles.subtitle}>For photo: {photoUri.substring(photoUri.lastIndexOf('/') + 1)}</Text>}
+        <Text style={styles.title}>Unlock Full Sheet</Text>
+        {photoUri && (
+          <Text style={styles.subtitle}>
+            Ready to print your official photos?
+          </Text>
+        )}
 
         {!isReady && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#198ff0ff" />
-            <Text style={styles.loadingText}>Loading payment system...</Text>
+            <ActivityIndicator size="large" color="#1d9bf0" />
+            <Text style={styles.loadingText}>Initializing payment...</Text>
           </View>
         )}
 
         {isReady && product6Photos && (
-          <RectButton style={styles.materialButton} onActiveStateChange={(active) => { if (active) handlePurchase() }}>
-            <Text style={styles.materialButtonText}>Buy 6 Photos for {product6Photos.price !== undefined && product6Photos.price !== null ? product6Photos.price : '---'}</Text>
-          </RectButton>
+          <TouchableOpacity style={styles.materialButton} onPress={handlePurchase}>
+            <Text style={styles.materialButtonText}>
+              Buy 6 Photos for {product6Photos.price !== undefined && product6Photos.price !== null ? product6Photos.price : '0.99'}
+            </Text>
+          </TouchableOpacity>
         )}
 
         {isReady && !product6Photos && (
           <Text style={styles.errorText}>Could not load product information. Please try again later.</Text>
         )}
 
-        <RectButton style={styles.backButton} onActiveStateChange={(active) => { if (active) onGoBack() }}>
-          <Text style={styles.backButtonText}>Go Back</Text>
-        </RectButton>
+        <TouchableOpacity style={styles.backButton} onPress={onGoBack}>
+          <Text style={styles.backButtonText}>Cancel</Text>
+        </TouchableOpacity>
       </View>
     </GestureHandlerRootView>
   );
@@ -68,69 +73,63 @@ export default function PaymentScreen({ onPurchaseSuccess, photoUri, onGoBack, r
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#d6e5f1ff',
+    backgroundColor: '#F0F5F9',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 24,
   },
-
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
+    marginBottom: 12,
+    color: '#0f1419',
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#555',
-    marginBottom: 30,
+    color: '#536471',
+    marginBottom: 40,
     textAlign: 'center',
+    lineHeight: 24,
   },
   loadingContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 40,
   },
   loadingText: {
-    marginLeft: 10,
+    marginTop: 12,
     fontSize: 16,
-    color: '#333',
+    color: '#536471',
   },
   materialButton: {
-    backgroundColor: '#198ff0ff',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 20,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    width: '80%',
-    marginBottom: 20,
-    zIndex: 999,
+    backgroundColor: '#1d9bf0',
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 30,
+    width: '100%',
+    marginBottom: 16,
   },
   materialButtonText: {
-    color: 'white',
+    color: '#F0F4F8',
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
   },
   errorText: {
-    color: 'red',
+    color: '#f4212e',
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 20,
   },
   backButton: {
-    marginTop: 20,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 20,
-    backgroundColor: '#66778c',
-    borderRadius: 20,
+    width: '100%',
   },
   backButtonText: {
-    color: 'white',
+    color: '#0f1419',
     fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });

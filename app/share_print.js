@@ -13,115 +13,73 @@ export default function SixPhotoPreviewScreen() {
   const actualPhotoCount = paramPhotoCount ? parseInt(paramPhotoCount, 10) : 6;
   const viewShotRef = useRef();
 
-  console.log('SharePrintScreen received country:', country);
-
   const requirements = getPassportRequirements(country);
-  console.log('Requirements for', country, ':', requirements);
   const { outputWidthPx, outputHeightPx } = requirements;
-
-  // Dimensions for the overall print sheet (e.g., a 4x6 inch sheet for 6 photos)
-  const printSheetWidth = outputWidthPx * 2; // For two columns
-  const printSheetHeight = outputHeightPx * 3; // For three rows
-
-  console.log('Print sheet dimensions (calculated):', printSheetWidth, 'x', printSheetHeight);
-  console.log('Photo URI for printing/sharing (received):', photoUri);
+  const printSheetWidth = outputWidthPx * 2;
+  const printSheetHeight = outputHeightPx * 3;
 
   const handlePrint = async () => {
     if (!photoUri) return;
-
-    const dpi = 300;
     const photoWidthIn = 35 / 25.4; 
     const photoHeightIn = 45 / 25.4;
-
     const printSheetWidthIn = 4;
     const printSheetHeightIn = 6;
-
-    const photosToPrint = 6;
-
     try{
-      const photoGridItems = Array.from({ length: photosToPrint }).map(() => `
+      const photoGridItems = Array.from({ length: 6 }).map(() => `
         <img src="${photoUri}" style="width: ${photoWidthIn}in; height: ${photoHeightIn}in; margin: 0.05in;" />
       `).join('');
-
-      const html = `
-        <html>
-          <head>
-            <style>
-              @page { size: ${printSheetWidthIn}in ${printSheetHeightIn}in; margin: 0; }
-              body { margin: 0; width: ${printSheetWidthIn}in; height: ${printSheetHeightIn}in; display: flex; flex-wrap: wrap; align-content: flex-start; }
-              img { display: block; }
-            </style>
-          </head>
-          <body>${photoGridItems}</body>
-        </html>
-      `;
-
+      const html = `<html><head><style>@page { size: ${printSheetWidthIn}in ${printSheetHeightIn}in; margin: 0; } body { margin: 0; width: ${printSheetWidthIn}in; height: ${printSheetHeightIn}in; display: flex; flex-wrap: wrap; align-content: flex-start; } img { display: block; }</style></head><body>${photoGridItems}</body></html>`;
       await Print.printAsync({ html });
     } catch (error) {
-      if (error.code !== 'CANCELLED' && (!error.message || !error.message.includes('Printing did not complete'))) {
-        Alert.alert("Printing Error", "Could not print the photo. Please try again later.");
-        console.error("Printing error:", error);
+      if (error.code !== 'CANCELLED') {
+        Alert.alert("Print Error", "Could not print photo.");
       }
     }
   };
 
   const handleShare = async () => {
     if (!photoUri) return;
-    if (!(await Sharing.isAvailableAsync())) {
-      Alert.alert("Sharing not available", "Sharing is not available on this device.");
-      return;
-    }
     try {
       const uri = await viewShotRef.current.capture();
       await Sharing.shareAsync(uri, { mimeType: 'image/png', UTI: 'public.png' });
     } catch (error) {
-        Alert.alert("Sharing Error", "Could not share the photo. Please try again later.");
-        console.error("Sharing error:", error);
+        Alert.alert("Share Error", "Could not share photo.");
     }
   };
 
-  const previewPhotoWidth = (Dimensions.get('window').width * 0.9) / 2; // 90% of screen width, divided by 2 for two columns
-  const previewPhotoHeight = previewPhotoWidth * (outputHeightPx / outputWidthPx);
-
   const dynamicStyles = StyleSheet.create({
-  
     previewContainer: {
         width: '90%',
-        aspectRatio: printSheetWidth / printSheetHeight, // Maintain the aspect ratio of the full sheet
-        backgroundColor: 'white',
+        aspectRatio: printSheetWidth / printSheetHeight,
+        backgroundColor: '#F0F5F9',
         flexDirection: 'row',
         flexWrap: 'wrap',
-        borderRadius: 5,
-        marginBottom: 20,
+        borderRadius: 12,
+        marginBottom: 32,
         overflow: 'hidden',
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
+        borderWidth: 1,
+        borderColor: '#eff3f4',
     },
     previewGridItem: {
-        width: '50%', // Each preview item is half the width of the previewContainer
-        aspectRatio: outputWidthPx / outputHeightPx, // Aspect ratio of a single photo
-        boxSizing: 'border-box',
+        width: '50%',
+        aspectRatio: outputWidthPx / outputHeightPx,
+        borderColor: '#f7f9f9',
+        borderWidth: 0.5,
     },
     photo: {
         width: '100%',
         height: '100%',
-        objectFit: 'contain', // Ensure the image fits within its bounds without cropping
     },
   });
 
   return (
     <View style={styles.container}>
-
-
       <Text style={styles.title}>Your Photos are Ready!</Text>
 
       <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 0.9 }}>
         <View style={dynamicStyles.previewContainer}>
           {[...Array(6)].map((_, i) => (
-              <View key={i} style={[dynamicStyles.previewGridItem, i < actualPhotoCount && styles.gridItemBorder]}>
+              <View key={i} style={dynamicStyles.previewGridItem}>
                 {i < actualPhotoCount && photoUri && (
                     <Image style={dynamicStyles.photo} source={{ uri: photoUri }} />
                 )}
@@ -147,16 +105,16 @@ export default function SixPhotoPreviewScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: '#F0F5F9',
     alignItems: 'center',
-    backgroundColor: '#d6e5f1ff',
-    padding: 20,
+    justifyContent: 'center',
+    padding: 24,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
+    marginBottom: 32,
+    color: '#0f1419',
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -164,26 +122,19 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   materialButton: {
-    backgroundColor: '#198ff0ff',
-    paddingVertical: 12,
+    backgroundColor: '#1d9bf0',
+    paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 30,
     width: '48%',
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
-    elevation: 3,
   },
   materialButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
-    textAlign: 'center',
-    marginLeft: 10,
+    marginLeft: 8,
   },
-  gridItemBorder: {
-    borderColor: '#ccc',
-    borderWidth: 1,
-  },
-
 });

@@ -1,14 +1,15 @@
-# Digital Passport Photo App Features
+# ID Photo App Features
 
-This document outlines the current features of the Digital Passport Photo App.
+This document outlines the current features of the ID Photo App.
 
-## Core Features
+## Key Features
 
 - **Take Photo:** Users can take a new photo using their device's camera.
 - **Upload Photo:** Users can select an existing photo from their device's image library.
 - **Resolution Check:** Uploaded photos are checked to ensure they meet a minimum resolution of 600x600 pixels. If the resolution is too low, the user is prompted to select a higher-quality image.
 - **Photo Preview:** After taking or selecting a photo, a preview is displayed, allowing the user to confirm their selection before saving.
 - **Save Photo:** Valid photos can be saved to the device's local storage for later use.
+- **Multiple Country Support:** Pre-configured requirements for **US** and **UK**.
 
 ## Gallery and Image Processing
 

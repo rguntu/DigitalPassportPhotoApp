@@ -40,7 +40,6 @@ const AdjustPhotoPage = () => {
           throw new Error("Failed to remove background.");
         }
 
-        // Convert to JPEG to fill transparent background with white
         const whiteBgPhoto = await ImageManipulator.manipulateAsync(
           removedBgUri,
           [],
@@ -50,8 +49,6 @@ const AdjustPhotoPage = () => {
         setPhotoWithWhiteBg(whiteBgPhoto.uri);
           Image.getSize(whiteBgPhoto.uri, (width, height) => {
             setImageSize({ width, height });
-
-            // Calculate initial scale to "cover" the container
             const requirements = getPassportRequirements(country);
             const { outputWidthPx, outputHeightPx } = requirements;
             const containerAspectRatio = outputWidthPx / outputHeightPx;
@@ -63,7 +60,7 @@ const AdjustPhotoPage = () => {
             savedScale.value = initialScale;
           }, (error) => {
           console.log('[Image.getSize Error in Adjust Photo]:', error.message);
-          setIsLoading(false); // Ensure loading state is cleared on error
+          setIsLoading(false);
           });
 
       } catch (e) {
@@ -82,52 +79,28 @@ const AdjustPhotoPage = () => {
       setIsLoading(true);
       const requirements = getPassportRequirements(country);
       const { outputWidthPx, outputHeightPx } = requirements;
-
-      // 1. Get container (viewport) dimensions
       const containerAspectRatio = outputWidthPx / outputHeightPx;
       const containerWidth = screenWidth * 0.9;
       const containerHeight = containerWidth / containerAspectRatio;
 
-      // 2. Calculate the initial display size of the image (due to resizeMode: 'contain')
       if (imageSize.width === 0 || imageSize.height === 0) {
         throw new Error("Image dimensions are not yet available.");
       }
       
       const initialScale = Math.max(containerWidth / imageSize.width, containerHeight / imageSize.height);
       const finalScale = Math.max(scale.value, initialScale);
-
-      const scaledWidth = imageSize.width * finalScale;
-      const scaledHeight = imageSize.height * finalScale;
-
-      const maxTranslateX = (scaledWidth - containerWidth) / 2;
-      const maxTranslateY = (scaledHeight - containerHeight) / 2;
-
-      const finalTranslateX = Math.max(-maxTranslateX, Math.min(translateX.value, maxTranslateX));
-      const finalTranslateY = Math.max(-maxTranslateY, Math.min(translateY.value, maxTranslateY));
-      
       const ratio = 1 / finalScale;
 
-      let originX = (imageSize.width / 2) - (containerWidth / 2) * ratio - finalTranslateX * ratio;
-      let originY = (imageSize.height / 2) - (containerHeight / 2) * ratio - finalTranslateY * ratio;
+      let originX = (imageSize.width / 2) - (containerWidth / 2) * ratio - translateX.value * ratio;
+      let originY = (imageSize.height / 2) - (containerHeight / 2) * ratio - translateY.value * ratio;
       let cropWidth = containerWidth * ratio;
       let cropHeight = containerHeight * ratio;
 
       originX = Math.max(0, Math.round(originX));
       originY = Math.max(0, Math.round(originY));
-      
-      const roundedImageWidth = Math.round(imageSize.width);
-      const roundedImageHeight = Math.round(imageSize.height);
-
       cropWidth = Math.round(cropWidth);
       cropHeight = Math.round(cropHeight);
 
-      if (originX + cropWidth > roundedImageWidth) {
-        cropWidth = roundedImageWidth - originX;
-      }
-      if (originY + cropHeight > roundedImageHeight) {
-        cropHeight = roundedImageHeight - originY;
-      }
-      
       const croppedPhoto = await ImageManipulator.manipulateAsync(
         photoWithWhiteBg,
         [{ crop: { originX, originY, width: cropWidth, height: cropHeight } }],
@@ -142,24 +115,16 @@ const AdjustPhotoPage = () => {
       
       let dest;
       if (isReEdit === 'true' && processedUri) {
-        // If re-editing, overwrite the existing processed file.
         dest = processedUri;
       } else {
-        // Otherwise, create a new processed file name.
         const originalFilename = photoUri.split('/').pop();
         const baseName = originalFilename.split('.')[0];
-        const randomNumber = Math.floor(Math.random() * 1000000); // Generate a random number
+        const randomNumber = Math.floor(Math.random() * 1000000);
         const filename = `${baseName}_${country}_processed_${randomNumber}.jpg`;
         dest = photosDir + filename;
       }
 
-      await FileSystem.copyAsync({
-        from: finalPhoto.uri,
-        to: dest,
-      });
-
-
-      
+      await FileSystem.copyAsync({ from: finalPhoto.uri, to: dest });
       router.replace({ pathname: '/', params: { tab: 'processed' } });
     } catch (error) {
         console.error("Error saving photo: ", error);
@@ -170,12 +135,8 @@ const AdjustPhotoPage = () => {
   };
 
   const pinchGesture = Gesture.Pinch()
-    .onUpdate((e) => {
-      scale.value = savedScale.value * e.scale;
-    })
-    .onEnd(() => {
-        savedScale.value = scale.value;
-    });
+    .onUpdate((e) => { scale.value = savedScale.value * e.scale; })
+    .onEnd(() => { savedScale.value = scale.value; });
 
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
@@ -197,52 +158,34 @@ const AdjustPhotoPage = () => {
     ],
   }));
 
-
-  if (isLoading) {
+  if (isLoading && !photoWithWhiteBg) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" />
-        <Text>Preparing your photo...</Text>
+        <ActivityIndicator size="large" color="#1d9bf0" />
+        <Text style={styles.loadingText}>Preparing photo...</Text>
       </View>
     );
   }
 
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <Text>{error}</Text>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.buttonText}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-  
   const requirements = getPassportRequirements(country);
-  const { outputWidthPx, outputHeightPx, headHeightMinPx, headHeightMaxPx } = requirements;
-
+  const { outputWidthPx, outputHeightPx, headHeightMaxPx } = requirements;
   const containerAspectRatio = outputWidthPx / outputHeightPx;
   const containerWidth = screenWidth * 0.9;
   const containerHeight = containerWidth / containerAspectRatio;
-
   const scaleFactor = containerWidth / outputWidthPx;
-
   const ovalHeight = headHeightMaxPx * scaleFactor;
-  const ovalWidth = ovalHeight * 0.75; // A common aspect ratio for head ovals
+  const ovalWidth = ovalHeight * 0.75;
 
   return (
     <View style={styles.container}>
       <View style={styles.contentContainer}>
-        <Text style={styles.instructions}>Adjust your photo to fit within the oval.</Text>
+        <Text style={styles.instructions}>Position your face within the oval.</Text>
         <GestureDetector gesture={composedGesture}>
           <View style={[styles.photoContainer, { width: containerWidth, height: containerHeight }]}>
             {photoWithWhiteBg && (
               <Animated.Image
                 source={{ uri: photoWithWhiteBg }}
-                style={[
-                  { width: imageSize.width, height: imageSize.height },
-                  animatedStyle
-                ]}
+                style={[{ width: imageSize.width, height: imageSize.height }, animatedStyle]}
               />
             )}
             <View style={styles.overlay}>
@@ -253,20 +196,13 @@ const AdjustPhotoPage = () => {
       </View>
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()} disabled={isLoading}>
-          <Text style={styles.buttonText}>Cancel</Text>
+        <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
+          <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.saveButton} onPress={onSave} disabled={isLoading}>
-          <Text style={styles.buttonText}>Save</Text>
+        <TouchableOpacity style={styles.saveButton} onPress={onSave}>
+          <Text style={styles.saveButtonText}>Save</Text>
         </TouchableOpacity>
       </View>
-      
-      {isLoading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="white" />
-          <Text style={styles.loadingText}>Saving...</Text>
-        </View>
-      )}
     </View>
   );
 };
@@ -274,10 +210,10 @@ const AdjustPhotoPage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'space-between',
+    backgroundColor: '#F0F5F9',
     alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-    paddingVertical: 30,
+    justifyContent: 'space-between',
+    paddingVertical: 40,
   },
   contentContainer: {
     width: '100%',
@@ -285,22 +221,20 @@ const styles = StyleSheet.create({
   },
   instructions: {
     fontSize: 18,
-    marginBottom: 20,
+    fontWeight: 'bold',
+    marginBottom: 24,
+    color: '#0f1419',
     textAlign: 'center',
     paddingHorizontal: 20,
-    color: '#333',
   },
   photoContainer: {
-    backgroundColor: 'white',
+    backgroundColor: '#f7f9f9',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-    position: 'relative',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#eff3f4',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
@@ -310,9 +244,9 @@ const styles = StyleSheet.create({
   oval: {
     borderRadius: 1000,
     borderWidth: 2,
-    borderColor: '#cccccc',
+    borderColor: '#1d9bf0',
     borderStyle: 'dashed',
-    backgroundColor: 'rgba(204, 204, 204, 0.3)',
+    backgroundColor: 'rgba(29, 155, 240, 0.1)',
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -321,33 +255,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   saveButton: {
-    backgroundColor: '#198ff0ff',
-    paddingVertical: 15,
+    backgroundColor: '#1d9bf0',
+    paddingVertical: 14,
     borderRadius: 30,
     width: '45%',
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#6c757d',
-    paddingVertical: 15,
+    backgroundColor: '#F0F5F9',
+    borderWidth: 1,
+    borderColor: '#cfd9de',
+    paddingVertical: 14,
     borderRadius: 30,
     width: '45%',
     alignItems: 'center',
   },
-  buttonText: {
-    color: 'white',
-    fontSize: 18,
+  saveButtonText: {
+    color: '#F0F4F8',
+    fontSize: 16,
     fontWeight: 'bold',
   },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  cancelButtonText: {
+    color: '#0f1419',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   loadingText: {
-    color: 'white',
-    marginTop: 10,
+    color: '#536471',
+    marginTop: 12,
     fontSize: 16,
   },
 });

@@ -12,35 +12,34 @@ export const useAppState = () => useContext(AppStateContext);
 const CustomBackButton = () => {
   const router = useRouter();
   return (
-    <TouchableOpacity onPress={() => router.replace({ pathname: '/', params: { tab: 'processed' } })} style={{ marginLeft: 10, padding: 5 }}>
+    <TouchableOpacity onPress={() => router.replace({ pathname: '/', params: { tab: 'processed' } })} style={{ marginLeft: 10, padding: 5, paddingBottom: 15 }}>
       <Ionicons name="chevron-back" size={24} color="white" />
     </TouchableOpacity>
   );
 };
 
-const HeaderTitle = () => {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { setShowHelp } = useAppState();
+const HeaderTitle = () => (
+  <View style={{ paddingBottom: 10 }}>
+    <Text style={{ color: 'white', fontSize: 24, fontWeight: 'bold' }}>ID Photo</Text>
+  </View>
+);
 
+const HelpButton = () => {
+  const router = useRouter();
+  const { setShowHelp } = useAppState();
   const handleHelpPress = () => {
     setShowHelp(true);
     router.push('/');
   };
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', paddingRight: insets.right + 10 }}>
-      <Text style={{ fontSize: 28, fontWeight: 'bold', color: 'white', flex: 1, marginRight: 5 }} adjustsFontSizeToFit numberOfLines={1}>
-        Digital Passport Photo
-      </Text>
-      <TouchableOpacity 
-        onPress={handleHelpPress} 
-        style={{ padding: 10 }} 
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <Ionicons name="help-circle-outline" size={32} color="white" />
-      </TouchableOpacity>
-    </View>
+    <TouchableOpacity 
+      onPress={handleHelpPress} 
+      style={{ marginRight: 10, padding: 5, paddingBottom: 15 }} 
+      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+    >
+      <Ionicons name="help-circle-outline" size={32} color="white" />
+    </TouchableOpacity>
   );
 };
 
@@ -53,18 +52,38 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <Stack
           screenOptions={{
-            headerStyle: { backgroundColor: '#198ff0ff' },
+            headerStyle: { 
+              backgroundColor: '#1d9bf0', // Primary app color
+              height: 100, // Slightly taller to accommodate padding
+            },
             headerTintColor: 'white',
-            headerTitleStyle: { fontWeight: 'bold' },
+            headerTitleAlign: 'center',
           }}
         >
-          <Stack.Screen name="index" options={{ headerBackVisible: false, headerTitle: () => <HeaderTitle /> }} />
-          <Stack.Screen name="adjust_photo" options={{ title: "Adjust Photo", headerBackVisible: true }} />
+          <Stack.Screen 
+            name="index" 
+            options={{ 
+              headerTitle: () => <HeaderTitle />,
+              headerBackVisible: false, 
+              headerRight: () => <HelpButton />,
+              headerRightContainerStyle: { paddingBottom: 10 },
+              headerTitleContainerStyle: { paddingBottom: 10 },
+            }} 
+          />
+          <Stack.Screen 
+            name="adjust_photo" 
+            options={{ 
+              title: "Adjust Photo", 
+              headerBackVisible: true,
+              headerTitleContainerStyle: { paddingBottom: 10 },
+            }} />
           <Stack.Screen 
             name="share_print" 
             options={{ 
               title: "Share & Print", 
               headerLeft: () => <CustomBackButton />,
+              headerLeftContainerStyle: { paddingBottom: 10 },
+              headerTitleContainerStyle: { paddingBottom: 10 },
             }} 
           />
         </Stack>

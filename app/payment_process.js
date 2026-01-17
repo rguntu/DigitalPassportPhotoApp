@@ -1,117 +1,57 @@
 import { StyleSheet, Text, View, Image, TouchableOpacity, Modal, Alert } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { MaterialIcons } from '@expo/vector-icons';
 
 export default function PaymentProcessModal({ isVisible, onClose, uri, photoCount, onProcessPayment }) {
-  const router = useRouter();
-
   const handlePrint = async () => {
     try {
       const photoGridItems = Array.from({ length: photoCount }).map(() => `
                 <div class="grid-item"><img src="${uri}" /></div>
               `).join('');
-
-      const html = `
-        <html>
-          <head>
-            <style>
-              @page {
-                size: 4in 6in;
-                margin: 0;
-              }
-              body {
-                margin: 0;
-                width: 4in;
-                height: 6in;
-              }
-              .grid-container {
-                display: flex;
-                flex-wrap: wrap;
-                width: 100%;
-                height: 100%;
-              }
-              .grid-item {
-                width: 2in;
-                height: 2in;
-                box-sizing: border-box;
-              }
-              img {
-                width: 100%;
-                height: 100%;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="grid-container">
-              ${photoGridItems}
-            </div>
-          </body>
-        </html>
-      `;
-
-      await Print.printAsync({
-        html,
-      });
+      const html = `<html><head><style>@page { size: 4in 6in; margin: 0; } body { margin: 0; width: 4in; height: 6in; } .grid-container { display: flex; flex-wrap: wrap; width: 100%; height: 100%; } .grid-item { width: 2in; height: 2in; box-sizing: border-box; } img { width: 100%; height: 100%; }</style></head><body><div class="grid-container">${photoGridItems}</div></body></html>`;
+      await Print.printAsync({ html });
     } catch (error) {
-      if (error.code === 'CANCELLED' || (error.message && error.message.includes('Printing did not complete'))) {
-        // User cancelled the print job, so we don't need to show an error
-        return;
-      }
-      console.error("Printing error:", error);
+      console.error("Print error:", error);
     }
   };
 
   const handleShare = async () => {
     if (!(await Sharing.isAvailableAsync())) {
-      Alert.alert("Sharing not available", "Sharing is not available on this device.");
+      Alert.alert("Error", "Sharing not available.");
       return;
     }
     await Sharing.shareAsync(uri);
   };
 
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={isVisible}
-      onRequestClose={onClose}
-    >
+    <Modal animationType="slide" transparent={true} visible={isVisible} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <MaterialIcons name="close" size={24} color="black" />
+            <MaterialIcons name="close" size={24} color="#0f1419" />
           </TouchableOpacity>
 
           <View style={styles.photoContainer}>
             {[...Array(6)].map((_, i) => (
               <View key={i} style={styles.gridPhotoContainer}>
-                {i < photoCount && (
-                  <Image
-                    style={styles.photo}
-                    source={{ uri }}
-                  />
-                )}
+                {i < photoCount && <Image style={styles.photo} source={{ uri }} />}
               </View>
             ))}
           </View>
           <View style={styles.buttonContainer}>
-            {photoCount !== 6 && (
-              <TouchableOpacity style={styles.materialButton} onPress={handlePrint}>
-                <Text style={styles.materialButtonText}>Print</Text>
-              </TouchableOpacity>
-            )}
-            {photoCount !== 6 && (
-              <TouchableOpacity style={styles.materialButton} onPress={handleShare}>
-                <Text style={styles.materialButtonText}>Share</Text>
-              </TouchableOpacity>
-            )}
-            {photoCount === 6 && (
-              <TouchableOpacity
-                style={[styles.materialButton, styles.singleButton]}
-                onPress={() => onProcessPayment(uri)}
-              >
+            {photoCount !== 6 ? (
+              <>
+                <TouchableOpacity style={styles.materialButton} onPress={handlePrint}>
+                  <Text style={styles.materialButtonText}>Print</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.materialButton} onPress={handleShare}>
+                  <Text style={styles.materialButtonText}>Share</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity style={[styles.materialButton, styles.singleButton]} onPress={() => onProcessPayment(uri)}>
                 <Text style={styles.materialButtonText}>Process Payment</Text>
               </TouchableOpacity>
             )}
@@ -127,72 +67,61 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
   modalContainer: {
     width: '90%',
-    backgroundColor: '#d6e5f1ff',
-    borderRadius: 10,
-    padding: 10, // Reduced padding
+    backgroundColor: '#F0F5F9',
+    borderRadius: 16,
+    padding: 20,
     alignItems: 'center',
-    position: 'relative',
+    elevation: 5,
   },
   closeButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    zIndex: 1,
+    alignSelf: 'flex-end',
+    marginBottom: 10,
   },
   photoContainer: {
-    width: '80%',
+    width: '100%',
     aspectRatio: 4 / 6,
-    backgroundColor: 'white',
-    padding: 0, // Removed padding
-    borderRadius: 5,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    backgroundColor: '#f7f9f9',
+    borderRadius: 8,
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-around',
     alignContent: 'space-around',
+    padding: 4,
   },
   gridPhotoContainer: {
-    width: '48%', // Two columns with a small gap
-    aspectRatio: 1, // Square photos
+    width: '48%',
+    aspectRatio: 1,
     padding: 2,
   },
   photo: {
     width: '100%',
     height: '100%',
+    borderRadius: 4,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    padding: 20,
+    marginTop: 24,
   },
   materialButton: {
-    backgroundColor: '#198ff0ff',
-    paddingVertical: 10,
-    paddingHorizontal: 10, // Reduced horizontal padding
-    borderRadius: 20,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    width: '40%', // Set width to 40%
+    backgroundColor: '#1d9bf0',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 30,
+    width: '45%',
+    alignItems: 'center',
   },
   materialButtonText: {
-    color: 'white',
+    color: '#F0F4F8',
     fontSize: 16,
     fontWeight: 'bold',
-    textAlign: 'center',
   },
   singleButton: {
-    width: '90%',
+    width: '100%',
   },
 });

@@ -25,7 +25,7 @@ export default function Page() {
   const [paymentResetKey, setPaymentResetKey] = useState(0);
   const [paymentProcessUri, setPaymentProcessUri] = useState(null);
   const [photoCount, setPhotoCount] = useState(6);
-  const [cameraType, setCameraType] = useState('back');
+  const [cameraType, setCameraType] = useState('front');
   const cameraRef = useRef(null);
   const router = useRouter();
   const { hasLaunched, setHasLaunched, showHelp, setShowHelp } = useAppState();
@@ -304,7 +304,7 @@ export default function Page() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#d6e5f1ff',
+    backgroundColor: '#F0F5F9',
     justifyContent: 'space-between',
     paddingBottom: 20,
     width: '100%',
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    backgroundColor: '#d6e5f1ff',
+    backgroundColor: '#F0F5F9',
   },
   galleryContainer: {
     flex: 1,
@@ -346,10 +346,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   materialButton: {
-    backgroundColor: '#198ff0ff',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderRadius: 20,
+    backgroundColor: '#1d9bf0',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 30, // More rounded like X buttons
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

@@ -1,6 +1,8 @@
-# Digital Passport Photo App
+# ID Photo App
 
-This is a React Native Digital Passport Photo App built with Expo. The app allows users to either take a photo using their device's camera or upload an existing photo from their media library.
+This is a React Native ID Photo App built with Expo. The app allows users to either take a photo using their device's camera or upload an existing photo from their media library.
+
+Currently supporting **US** and **UK** passport and ID requirements.
 
 ## Features
 
@@ -24,7 +26,7 @@ npm install -g expo-cli
 
 ```bash
 git clone <repository-url>
-cd digital-passport-photo-app
+cd idphoto-app
 ```
 
 2. **Install dependencies:**
