@@ -27,7 +27,7 @@
     "splash": {
       "image": "./assets/pp.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1d9bf0"
+      "backgroundColor": "#ffffff"
     },
     "ios": {
       "bundleIdentifier": "com.rgapps.digitalpassportphoto",

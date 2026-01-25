@@ -32,6 +32,7 @@ export default function Page() {
 
 
   useEffect(() => {
+    ensureDirExists();
     const checkPermissions = async () => {
       const cameraPermission = await Camera.getCameraPermissionsAsync();
       const mediaLibraryPermission = await ImagePicker.getMediaLibraryPermissionsAsync();

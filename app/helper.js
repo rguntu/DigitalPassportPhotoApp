@@ -65,8 +65,10 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute',
-    right: 16,
-    padding: 8,
+    top: 10,
+    right: 10,
+    padding: 12,
+    zIndex: 1,
   },
   title: {
     fontSize: 28,
