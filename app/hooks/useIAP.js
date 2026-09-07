@@ -1,91 +1,138 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Platform } from 'react-native';
-import * as InAppPurchases from 'expo-in-app-purchases';
+import { useIAP as useExpoIAP, finishTransaction, ErrorCode } from 'expo-iap';
 
-// --- IMPORTANT ---
-// Replace this with your actual Product ID from App Store Connect
+export const PRODUCT_ID_6_PHOTOS = 'com.rgapps.appname.6photos';
+
 const productIds = Platform.select({
-  ios: ['com.rgapps.appname.6photos'],
-  android: [], // Add Android product IDs here if needed
+  ios: [PRODUCT_ID_6_PHOTOS],
+  android: [PRODUCT_ID_6_PHOTOS],
+  default: [PRODUCT_ID_6_PHOTOS],
 });
-// ---
+
+const isUserCancelled = (error) => {
+  const code = error?.code;
+  return (
+    code === ErrorCode.UserCancelled ||
+    code === 'user-cancelled' ||
+    code === 'E_USER_CANCELLED'
+  );
+};
+
+const purchaseMatchesSku = (purchase, sku) => {
+  if (!purchase || !sku) return false;
+  return (
+    purchase.productId === sku ||
+    purchase.id === sku ||
+    (Array.isArray(purchase.ids) && purchase.ids.includes(sku))
+  );
+};
 
 export const useIAP = (onPurchaseSuccess) => {
-  const [products, setProducts] = useState([]);
-  const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState(null);
+  const [isPurchasing, setIsPurchasing] = useState(false);
   const onPurchaseSuccessRef = useRef(onPurchaseSuccess);
 
   useEffect(() => {
     onPurchaseSuccessRef.current = onPurchaseSuccess;
   }, [onPurchaseSuccess]);
 
-  useEffect(() => {
-    let isMounted = true;
+  const clearError = useCallback(() => setError(null), []);
 
-    const initializeIAP = async () => {
+  const { connected, products, fetchProducts, requestPurchase } = useExpoIAP({
+    onPurchaseSuccess: async (purchase) => {
       try {
-        await InAppPurchases.connectAsync();
-        if (isMounted) {
-            if (productIds?.length > 0) {
-                const { responseCode, results } = await InAppPurchases.getProductsAsync(productIds);
-                if (responseCode === InAppPurchases.IAPResponseCode.OK) {
-                    setProducts(results);
-                }
-            }
-            setIsReady(true);
+        // Consumable: always finish so the SKU can be purchased again.
+        await finishTransaction({ purchase, isConsumable: true });
+        if (onPurchaseSuccessRef.current) {
+          onPurchaseSuccessRef.current(purchase);
         }
-      } catch (e) {
-        if (isMounted) {
-            setError(`Failed to initialize IAP: ${e.message}`);
-        }
+      } catch (ackErr) {
+        console.warn('Failed to finish transaction:', ackErr);
+        setError(`Failed to finish transaction: ${ackErr.message}`);
+      } finally {
+        setIsPurchasing(false);
       }
-    };
-
-    initializeIAP();
-
-    const purchaseListener = InAppPurchases.setPurchaseListener(async ({ responseCode, results, errorCode }) => {
-      if (responseCode === InAppPurchases.IAPResponseCode.OK) {
-        for (const purchase of results) {
-          if (!purchase.acknowledged) {
-            try {
-              console.log('Purchase successful:', purchase);
-              await InAppPurchases.finishTransactionAsync(purchase, true);
-              if (onPurchaseSuccessRef.current) {
-                onPurchaseSuccessRef.current(purchase);
-              }
-            } catch (ackErr) {
-              console.warn('Failed to finish transaction:', ackErr);
-            }
-          }
-        }
-      } else if (responseCode === InAppPurchases.IAPResponseCode.USER_CANCELED) {
+    },
+    onPurchaseError: (purchaseError) => {
+      setIsPurchasing(false);
+      if (isUserCancelled(purchaseError)) {
         console.log('User canceled the purchase.');
-      } else {
-        console.warn(`Something went wrong with the purchase listener: ${errorCode}`);
+        return;
       }
-    });
+      console.warn('Purchase error:', purchaseError);
+      setError(purchaseError?.message || 'Purchase failed');
+    },
+    onError: (e) => {
+      setIsPurchasing(false);
+      setError(e?.message || 'IAP error');
+    },
+  });
+
+  useEffect(() => {
+    if (!connected || !productIds?.length) {
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        await fetchProducts({ skus: productIds, type: 'in-app' });
+      } catch (e) {
+        if (!cancelled) {
+          setError(`Failed to load products: ${e.message}`);
+        }
+      }
+    })();
 
     return () => {
-      isMounted = false;
-      if (purchaseListener) {
-        purchaseListener.remove();
-      }
-      InAppPurchases.disconnectAsync();
+      cancelled = true;
     };
-  }, []);
+  }, [connected, fetchProducts]);
 
   const purchaseProduct = async (productId) => {
-    if (!isReady) {
+    if (!connected) {
       setError('IAP is not ready to make a purchase.');
       return;
     }
+    if (isPurchasing) {
+      return;
+    }
+
+    setError(null);
+    setIsPurchasing(true);
     try {
-      await InAppPurchases.purchaseItemAsync(productId);
+      await requestPurchase({
+        request: {
+          apple: { sku: productId },
+          google: { skus: [productId] },
+        },
+        type: 'in-app',
+      });
+      // Result is event-based (onPurchaseSuccess / onPurchaseError).
+      // Keep this screen mounted until those fire.
     } catch (e) {
-      setError(`Purchase failed: ${e.message}`);
+      setIsPurchasing(false);
+      if (!isUserCancelled(e)) {
+        setError(`Purchase failed: ${e.message}`);
+      }
     }
   };
 
-  return { products, isReady, purchaseProduct, error };
+  // Normalize product shape for existing UI (productId + price).
+  const normalizedProducts = (products || []).map((product) => ({
+    ...product,
+    productId: product.id,
+    price: product.displayPrice,
+  }));
+
+  return {
+    products: normalizedProducts,
+    isReady: connected,
+    isPurchasing,
+    purchaseProduct,
+    purchaseMatchesSku,
+    error,
+    clearError,
+  };
 };

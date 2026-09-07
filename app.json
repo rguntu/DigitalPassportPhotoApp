@@ -4,18 +4,45 @@
     "slug": "digital-passport-photo-app",
     "scheme": "com.rgapps.digitalpassportphoto",
     "version": "1.0.0",
-    "sdkVersion": "51.0.0",
     "platforms": [
       "ios",
       "android"
     ],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow DigitalPassportPhotoApp to access your camera to take passport photos.",
+          "microphonePermission": "Allow DigitalPassportPhotoApp to access your microphone when using the camera.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow DigitalPassportPhotoApp to access your photos to create passport photos."
+        }
+      ],
+      "expo-iap",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "16.4"
+          }
+        }
+      ]
+    ],
     "ios": {
       "bundleIdentifier": "com.rgapps.digitalpassportphoto",
-      "deploymentTarget": "15.0",
-      "buildNumber": "1.0.0",
+      "deploymentTarget": "16.4",
       "supportsTablet": true,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "Allow DigitalPassportPhotoApp to access your camera to take passport photos.",
+        "NSPhotoLibraryUsageDescription": "Allow DigitalPassportPhotoApp to access your photos to create passport photos.",
+        "NSMicrophoneUsageDescription": "Allow DigitalPassportPhotoApp to access your microphone when using the camera."
       }
     },
     "android": {

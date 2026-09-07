@@ -7,11 +7,15 @@
         "development": {
             "developmentClient": true,
             "distribution": "internal",
+            "channel": "development",
+            "ios": {
+                "image": "latest"
+            },
             "env": {
                 "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
             },
             "cache": {
-                "key": "v2",
+                "key": "v3-sdk57",
                 "paths": [
                     "node_modules",
                     "ios/Pods"
@@ -21,14 +25,16 @@
         "simulator": {
             "developmentClient": true,
             "distribution": "internal",
+            "channel": "development",
             "ios": {
-                "simulator": true
+                "simulator": true,
+                "image": "latest"
             },
             "env": {
                 "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
             },
             "cache": {
-                "key": "v2",
+                "key": "v3-sdk57",
                 "paths": [
                     "node_modules",
                     "ios/Pods"
@@ -37,11 +43,15 @@
         },
         "preview": {
             "distribution": "internal",
+            "channel": "preview",
+            "ios": {
+                "image": "latest"
+            },
             "env": {
                 "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
             },
             "cache": {
-                "key": "v2",
+                "key": "v3-sdk57",
                 "paths": [
                     "node_modules",
                     "ios/Pods"
@@ -50,11 +60,15 @@
         },
         "production": {
             "autoIncrement": true,
+            "channel": "production",
+            "ios": {
+                "image": "latest"
+            },
             "env": {
                 "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
             },
             "cache": {
-                "key": "v2",
+                "key": "v3-sdk57",
                 "paths": [
                     "node_modules",
                     "ios/Pods",
@@ -67,4 +81,3 @@
         "production": {}
     }
 }
-

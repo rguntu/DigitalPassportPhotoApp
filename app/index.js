@@ -1,23 +1,42 @@
-import { StyleSheet, Text, View, Button, Image, Alert, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, View, Alert, TouchableOpacity, ScrollView } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useState, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
 import Gallery from '../gallery';
 import PaymentProcessModal from './payment_process';
-import { useLocalSearchParams } from 'expo-router';
-
-const photosDir = FileSystem.documentDirectory + 'photos/';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { colors, radii, spacing } from './theme';
+import { COUNTRY_OPTIONS, getCountryMeta, getPhotoAspect } from './countries';
+import { PrimaryButton, SecondaryButton } from './components/AppButton';
+import StepIndicator from './components/StepIndicator';
 
 export default function Page() {
-  const [permission, requestPermission] = useCameraPermissions();
-  const [photo, setPhoto] = useState();
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [showCamera, setShowCamera] = useState(false);
   const [showPaymentProcessModal, setShowPaymentProcessModal] = useState(false);
   const [paymentProcessUri, setPaymentProcessUri] = useState(null);
   const [photoCount, setPhotoCount] = useState(6);
+  const [country, setCountry] = useState('US');
   const cameraRef = useRef(null);
+  const router = useRouter();
   const { tab } = useLocalSearchParams();
+
+  const countryMeta = useMemo(() => getCountryMeta(country), [country]);
+  const ovalAspect = getPhotoAspect(country);
+
+  const openAdjustPhoto = (uri) => {
+    if (!uri) {
+      Alert.alert('No photo', 'Could not open the selected photo.');
+      return;
+    }
+    router.push({
+      pathname: '/adjust_photo',
+      params: {
+        photoUri: uri,
+        country,
+      },
+    });
+  };
 
   const handleShowPaymentProcess = (uri, count = 6) => {
     setPaymentProcessUri(uri);
@@ -30,41 +49,35 @@ export default function Page() {
     setPaymentProcessUri(null);
   };
 
-  const ensureDirExists = async () => {
-    const dirInfo = await FileSystem.getInfoAsync(photosDir);
-    if (!dirInfo.exists) {
-      await FileSystem.makeDirectoryAsync(photosDir, { intermediates: true });
+  const startCamera = async () => {
+    if (!cameraPermission?.granted) {
+      const result = await requestCameraPermission();
+      if (!result.granted) {
+        Alert.alert('Camera permission needed', 'Allow camera access to take a passport photo.');
+        return;
+      }
     }
+    setShowCamera(true);
   };
 
-  if (!permission) {
-    // Camera permissions are still loading.
-    return <View />;
-  }
-
-  if (!permission.granted) {
-    // Camera permissions are not granted yet.
-    return (
-      <View style={styles.container}>
-        <Text style={{ textAlign: 'center', color: 'white' }}>We need your permission to show the camera</Text>
-        <TouchableOpacity style={styles.materialButton} onPress={requestPermission}>
-          <Text style={styles.materialButtonText}>Grant Permission</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
   const takePhoto = async () => {
-    if (cameraRef.current) {
-      const newPhoto = await cameraRef.current.takePictureAsync({ base64: true });
-      setPhoto(newPhoto);
-      setShowCamera(false);
+    if (!cameraRef.current) return;
+    const newPhoto = await cameraRef.current.takePictureAsync();
+    setShowCamera(false);
+    if (newPhoto?.uri) {
+      openAdjustPhoto(newPhoto.uri);
     }
   };
 
   const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    const library = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!library.granted) {
+      Alert.alert('Photo library permission needed', 'Allow photo access to upload an existing picture.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
       allowsEditing: false,
       quality: 1,
     });
@@ -75,54 +88,29 @@ export default function Page() {
         if (width < 600 || height < 600) {
           Alert.alert(
             'Image Resolution Too Low',
-            `The selected photo is too small (${width}x${height} pixels). Please choose an image with a minimum resolution of 600x600 pixels to ensure good print quality.`
+            `The selected photo is too small (${width}×${height}). Please choose at least 600×600 pixels.`
           );
         } else {
-          setPhoto({ uri: uri, base64: null });
+          openAdjustPhoto(uri);
         }
       });
     }
   };
 
-  const savePhoto = async () => {
-    await ensureDirExists();
-    const filename = `${Date.now()}.jpg`;
-    const dest = photosDir + filename;
-    await FileSystem.copyAsync({
-      from: photo.uri,
-      to: dest,
-    });
-    setPhoto(undefined);
-    // handleShowPaymentProcess(dest); // Removed to prevent immediate modal display
-  };
-
-  if (photo) {
-    return (
-      <View style={styles.container}>
-        <Image style={styles.paymentProcess} source={{ uri: photo.uri || "data:image/jpg;base64," + photo.base64 }} />
-        <View style={styles.centeredButtonContainer}>
-          <TouchableOpacity style={styles.materialButton} onPress={savePhoto}>
-            <Text style={styles.materialButtonText}>Save</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.materialButton} onPress={() => setPhoto(undefined)}>
-            <Text style={styles.materialButtonText}>Discard</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
   if (showCamera) {
+    const guideHeight = 280;
+    const guideWidth = guideHeight * ovalAspect * 0.75;
+
     return (
       <View style={styles.container}>
-        <CameraView style={styles.camera} ref={cameraRef}>
+        <CameraView style={styles.camera} ref={cameraRef} facing="front">
+          <View style={styles.cameraGuideWrap} pointerEvents="none">
+            <View style={[styles.cameraOval, { width: guideWidth, height: guideHeight }]} />
+            <Text style={styles.cameraGuideText}>Center your face in the oval · {country}</Text>
+          </View>
           <View style={styles.cameraButtonContainer}>
-            <TouchableOpacity style={styles.materialButton} onPress={takePhoto}>
-              <Text style={styles.materialButtonText}>Take Photo</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.materialButton} onPress={() => setShowCamera(false)}>
-              <Text style={styles.materialButtonText}>Cancel</Text>
-            </TouchableOpacity>
+            <PrimaryButton title="Take Photo" onPress={takePhoto} style={{ width: '46%' }} />
+            <SecondaryButton title="Cancel" onPress={() => setShowCamera(false)} style={{ width: '46%' }} />
           </View>
         </CameraView>
       </View>
@@ -131,18 +119,50 @@ export default function Page() {
 
   return (
     <View style={styles.mainContainer}>
+      <StepIndicator current="capture" />
+      <View style={styles.countrySection}>
+        <Text style={styles.countryLabel}>Passport country</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.countryRow}>
+          {COUNTRY_OPTIONS.map((option) => {
+            const selected = option.value === country;
+            return (
+              <TouchableOpacity
+                key={option.value}
+                style={[styles.countryChip, selected && styles.countryChipSelected]}
+                onPress={() => setCountry(option.value)}
+              >
+                <Text style={[styles.countryChipText, selected && styles.countryChipTextSelected]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+        <Text style={styles.countryHint}>
+          {countryMeta.code} · {countryMeta.sizeLabel} · {countryMeta.outputWidthPx}×{countryMeta.outputHeightPx}px
+          {'\n'}Not a government service — acceptance not guaranteed
+        </Text>
+      </View>
+
       <View style={styles.galleryContainer}>
-        <Gallery onPressProcessedPhoto={handleShowPaymentProcess} initialTab={tab} />
+        <Gallery
+          onPressProcessedPhoto={handleShowPaymentProcess}
+          initialTab={tab}
+          onStartCapture={startCamera}
+        />
       </View>
+
       <View style={styles.mainButtonContainer}>
-        <TouchableOpacity style={styles.materialButton} onPress={() => setShowCamera(true)}>
-          <Text style={styles.materialButtonText}>Take Photo</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.materialButton} onPress={pickImage}>
-          <Text style={styles.materialButtonText}>Upload Photo</Text>
-        </TouchableOpacity>
+        <PrimaryButton title="Take Photo" onPress={startCamera} style={{ width: '46%' }} />
+        <SecondaryButton title="Upload" onPress={pickImage} style={{ width: '46%' }} />
       </View>
-      <PaymentProcessModal isVisible={showPaymentProcessModal} onClose={handleClosePaymentProcess} uri={paymentProcessUri} photoCount={photoCount} />
+
+      <PaymentProcessModal
+        isVisible={showPaymentProcessModal}
+        onClose={handleClosePaymentProcess}
+        uri={paymentProcessUri}
+        photoCount={photoCount}
+      />
     </View>
   );
 }
@@ -150,16 +170,54 @@ export default function Page() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#d6e5f1ff',
+    backgroundColor: colors.background,
     justifyContent: 'space-between',
-    paddingBottom: 20,
+    paddingBottom: spacing.md,
     width: '100%',
-    height: '100%',
   },
   container: {
     flex: 1,
-    justifyContent: 'center',
-    backgroundColor: '#d6e5f1ff',
+    backgroundColor: colors.background,
+  },
+  countrySection: {
+    paddingTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  countryLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textMuted,
+    marginBottom: spacing.xs,
+  },
+  countryRow: {
+    gap: spacing.xs,
+    paddingRight: spacing.md,
+  },
+  countryChip: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    borderRadius: radii.pill,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    marginRight: 8,
+  },
+  countryChipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  countryChipText: {
+    color: colors.text,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  countryChipTextSelected: {
+    color: colors.white,
+  },
+  countryHint: {
+    marginTop: spacing.xs,
+    color: colors.textMuted,
+    fontSize: 12,
   },
   galleryContainer: {
     flex: 1,
@@ -168,53 +226,39 @@ const styles = StyleSheet.create({
   camera: {
     flex: 1,
   },
+  cameraGuideWrap: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraOval: {
+    borderRadius: 999,
+    borderWidth: 3,
+    borderColor: '#ffffff',
+    backgroundColor: 'rgba(29,155,240,0.15)',
+  },
+  cameraGuideText: {
+    marginTop: spacing.md,
+    color: colors.white,
+    fontWeight: '700',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowRadius: 4,
+  },
   cameraButtonContainer: {
     position: 'absolute',
     bottom: 0,
     width: '100%',
     flexDirection: 'row',
-    backgroundColor: 'transparent',
-    margin: 0,
-    paddingBottom: 20,
     justifyContent: 'space-around',
+    paddingBottom: 28,
+    paddingHorizontal: spacing.md,
   },
   mainButtonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    //paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: spacing.sm,
     width: '100%',
-    alignSelf: 'center',
-  },
-  materialButton: {
-    backgroundColor: '#198ff0ff',
-    paddingVertical: 10,
-    paddingHorizontal: 10, // Reduced horizontal padding
-    borderRadius: 20,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    width: '40%', // Set width to 40%
-  },
-  materialButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  paymentProcess: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-    alignSelf: 'center',
-    resizeMode: 'contain',
-  },
-  centeredButtonContainer: {
-    flex: 0.2,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
   },
 });
