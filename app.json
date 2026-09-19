@@ -37,7 +37,6 @@
     ],
     "ios": {
       "bundleIdentifier": "com.rgapps.digitalpassportphoto",
-      "buildNumber": "1.2.0",
       "deploymentTarget": "16.4",
       "icon": "./assets/icon.png",
       "supportsTablet": false,
