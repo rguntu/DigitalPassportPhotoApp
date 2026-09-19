@@ -4,6 +4,7 @@
     "slug": "digital-passport-photo-app",
     "scheme": "com.rgapps.digitalpassportphoto",
     "version": "1.0.0",
+    "icon": "./assets/icon.png",
     "platforms": [
       "ios",
       "android"
@@ -37,7 +38,8 @@
     "ios": {
       "bundleIdentifier": "com.rgapps.digitalpassportphoto",
       "deploymentTarget": "16.4",
-      "supportsTablet": true,
+      "icon": "./assets/icon.png",
+      "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "Allow DigitalPassportPhotoApp to access your camera to take passport photos.",
@@ -47,7 +49,8 @@
     },
     "android": {
       "package": "com.rgapps.digitalpassportphoto",
-      "versionCode": 1
+      "versionCode": 1,
+      "icon": "./assets/icon.png"
     },
     "extra": {
       "eas": {

@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
   },
   emptyCell: {
     flex: 1,
-    backgroundColor: '#eef3f6',
+    backgroundColor: colors.surfaceMuted,
     borderRadius: 4,
   },
   photo: {

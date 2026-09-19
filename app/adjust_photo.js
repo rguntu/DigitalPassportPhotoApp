@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   photoContainer: {
-    backgroundColor: '#e8eef2',
+    backgroundColor: colors.surfaceMuted,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
@@ -408,13 +408,13 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
     borderWidth: 3,
     borderColor: colors.primary,
-    backgroundColor: 'rgba(29, 155, 240, 0.12)',
+    backgroundColor: colors.primarySoft,
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(240,245,249,0.35)',
+    backgroundColor: 'rgba(244, 248, 250, 0.42)',
     zIndex: 20,
   },
   buttonContainer: {

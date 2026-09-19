@@ -234,8 +234,8 @@ const styles = StyleSheet.create({
   cameraOval: {
     borderRadius: 999,
     borderWidth: 3,
-    borderColor: '#ffffff',
-    backgroundColor: 'rgba(29,155,240,0.15)',
+    borderColor: colors.white,
+    backgroundColor: colors.primarySoft,
   },
   cameraGuideText: {
     marginTop: spacing.md,

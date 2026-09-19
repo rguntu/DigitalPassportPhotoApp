@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   },
   emptyCell: {
     flex: 1,
-    backgroundColor: '#eef3f6',
+    backgroundColor: colors.surfaceMuted,
     borderRadius: 4,
   },
   photo: {
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(240,245,249,0.28)',
+    backgroundColor: 'rgba(244, 248, 250, 0.32)',
   },
   watermarkText: {
     color: 'rgba(15,20,25,0.45)',
