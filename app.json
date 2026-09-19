@@ -3,7 +3,7 @@
     "name": "DigitalPassportPhotoApp",
     "slug": "digital-passport-photo-app",
     "scheme": "com.rgapps.digitalpassportphoto",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "icon": "./assets/icon.png",
     "platforms": [
       "ios",
@@ -37,6 +37,7 @@
     ],
     "ios": {
       "bundleIdentifier": "com.rgapps.digitalpassportphoto",
+      "buildNumber": "1.2.0",
       "deploymentTarget": "16.4",
       "icon": "./assets/icon.png",
       "supportsTablet": false,
@@ -49,7 +50,7 @@
     },
     "android": {
       "package": "com.rgapps.digitalpassportphoto",
-      "versionCode": 1,
+      "versionCode": 20,
       "icon": "./assets/icon.png"
     },
     "extra": {
